@@ -530,6 +530,7 @@ function calcHSE(){
   add('Billet ısıtma (NG)',ng1,'#10b981');add('Yaşlandırma (NG)',ng2,'#34d399');if(ng3>0) add('Eritme (NG)',ng3,'#065f46');if(ng4>0) add('Toz boya (NG)',ng4,'#6ee7b7');add('Forklift (motorin)',dsl,'#9ca3af');add('Elektrik (S2)',s2,'#185FA5');
   const hec=document.getElementById('ch-henv');if(hec&&vd.length>0){CHARTS.henv=new Chart(hec,{type:'bar',data:{labels:ld,datasets:[{data:vd,backgroundColor:cd,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.05)'}},x:{ticks:{font:{size:9}}}}}});}
   updateVerif(s1,s2);
+  saveData();
 }
 
 function updateVerif(s1,s2){
@@ -558,6 +559,7 @@ function setProc(mode,btn){
   const pu=document.getElementById('proc-units');if(pu) pu.innerHTML=cfg.units.map(u=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:.5px solid #e5e7eb;font-size:12px"><span style="color:#10b981;font-weight:700">✓</span>${u}</div>`).join('');
   const scopeRows=[['Billet ısıtma fırını (NG)','S1','Evet','Yüksek'],['Yaşlandırma fırını (NG)','S1','Evet','Orta'],...(cfg.bc?[['Eritme fırını (NG)','S1','Evet','Yüksek']]:[]),(cfg.sf?[['Toz boya fırını (NG)','S1','Evet','Orta']]:[] ),...[['Forklift (motorin)','S1','Evet','Düşük'],['Ekstrüzyon presi (elektrik)','S2','Evet','Çok Yüksek']],...(cfg.sf?[['Eloksal/toz boya (elektrik)','S2','Evet','Yüksek']]:[] ),...[['Kompresör (elektrik)','S2','Evet','Orta'],['Hammadde tedariki','S3','Hayır','Gönüllü']]];
   const stb=document.getElementById('scope-tbl');if(stb) stb.innerHTML=scopeRows.map(r=>{const sc=r[1]==='S1'?'<span class="s1t">S1</span>':r[1]==='S2'?'<span class="s2t">S2</span>':'<span style="font-size:9px;padding:2px 5px;border-radius:3px;background:#fef3c7;color:#92400e;font-weight:600">S3</span>';const cb=r[2]==='Evet'?'<span class="badge bs">Evet</span>':'<span class="badge bd">Hayır</span>';const pr=r[3]==='Çok Yüksek'?'<span class="badge bd">Çok Yüksek</span>':r[3]==='Yüksek'?'<span class="badge bw">Yüksek</span>':r[3]==='Orta'?'<span class="badge bi">Orta</span>':'<span class="badge bg">Düşük</span>';return `<tr><td>${r[0]}</td><td>${sc}</td><td>${cb}</td><td>${pr}</td></tr>`;}).join('');
+  saveData();
 }
 
 function setView(v){
@@ -665,7 +667,12 @@ function importData(){
   };inp.click();
 }
 
-window.addEventListener('DOMContentLoaded',()=>{setTimeout(loadData,100);});
+window.addEventListener('DOMContentLoaded',()=>{
+  setTimeout(()=>{
+    loadData();
+    setTimeout(()=>{recalcAll();calcHSE();},150);
+  },200);
+});
 
 </script>
 </body>
