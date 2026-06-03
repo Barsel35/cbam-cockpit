@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CBAM Carbon Cockpit — Demo v1</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #6b7280;
+  --color-text-danger: #b91c1c;
+  --color-text-warning: #92400e;
+  --color-text-success: #065f46;
+  --color-text-info: #1e40af;
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f3f4f6;
+  --color-background-danger: #fee2e2;
+  --color-background-warning: #fef3c7;
+  --color-background-success: #d1fae5;
+  --color-background-info: #dbeafe;
+  --color-border-tertiary: #e5e7eb;
+  --color-border-secondary: #d1d5db;
+  --border-radius-md: 6px;
+  --border-radius-lg: 8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);background:#f9fafb;color:var(--color-text-primary)}
+.w{background:#fff;max-width:1280px;margin:0 auto;border:0.5px solid var(--color-border-tertiary);min-height:100vh}
+input[type=number],input[type=text],input[type=password]{border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);outline:none}
+input:focus{border-color:#185FA5}
+select{border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);outline:none}
+/* topbar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:.55rem 1.1rem;border-bottom:.5px solid var(--color-border-tertiary);flex-wrap:wrap;gap:6px;background:#fff}
+.brand{display:flex;align-items:center;gap:7px}
+.brand-name{font-size:14px;font-weight:600;color:var(--color-text-primary)}
+.params{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pi{display:flex;align-items:center;gap:4px}
+.pi span{font-size:10px;color:var(--color-text-secondary);white-space:nowrap}
+.pi input{padding:3px 6px;font-size:11px}
+/* API key row */
+.api-row{display:flex;align-items:center;gap:8px;padding:.45rem 1.1rem;background:#fef9ec;border-bottom:.5px solid #fde68a;flex-wrap:wrap}
+.api-row span{font-size:11px;color:#92400e}
+.api-row input{padding:4px 8px;font-size:11px;width:280px;border-color:#fcd34d}
+.api-row a{font-size:11px;color:#1e40af;text-decoration:none}
+.api-row a:hover{text-decoration:underline}
+/* view switch */
+.vs-wrap{display:flex;border-bottom:.5px solid var(--color-border-tertiary)}
+.vs-btn{flex:1;padding:10px;font-size:13px;font-weight:500;border:none;background:var(--color-background-secondary);color:var(--color-text-secondary);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;border-bottom:2px solid transparent;transition:.15s}
+.vs-btn:hover{background:#f0f0f0}
+.vs-btn.on-exec{background:#fff;color:#185FA5;border-bottom-color:#185FA5}
+.vs-btn.on-hse{background:#fff;color:#0F6E56;border-bottom-color:#0F6E56}
+/* tabs */
+.tabs{display:flex;border-bottom:.5px solid var(--color-border-tertiary);padding:0 .8rem;overflow-x:auto;background:#fff}
+.tb{padding:8px 13px;font-size:12px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--color-text-secondary);cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.tb.on-e{color:#185FA5;border-bottom-color:#185FA5;font-weight:500}
+.tb.on-h{color:#0F6E56;border-bottom-color:#0F6E56;font-weight:500}
+/* pages */
+.page{display:none;padding:.9rem 1.1rem}
+.page.on{display:block}
+/* grids */
+.g5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-bottom:.9rem}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:.9rem}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-bottom:.9rem}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:.9rem}
+@media(max-width:768px){.g5{grid-template-columns:repeat(2,1fr)}.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr}.g2{grid-template-columns:1fr}}
+/* kpi */
+.kpi{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:.75rem .9rem}
+.kpi-l{font-size:10px;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.kpi-v{font-size:20px;font-weight:600;line-height:1.1;color:var(--color-text-primary)}
+.kpi-s{font-size:10px;color:var(--color-text-secondary);margin-top:2px}
+.kpi-b{font-size:11px;font-weight:500;margin-top:3px}
+/* card */
+.card{background:#fff;border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:.85rem 1.1rem;margin-bottom:.85rem}
+.card-t{font-size:10px;font-weight:600;color:var(--color-text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.75rem;display:flex;align-items:center;gap:5px}
+/* table */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;padding:5px 7px;font-size:10px;font-weight:600;color:var(--color-text-secondary);border-bottom:.5px solid var(--color-border-secondary);text-transform:uppercase;letter-spacing:.03em;background:#f9fafb}
+.tbl td{padding:6px 7px;border-bottom:.5px solid var(--color-border-tertiary);color:var(--color-text-primary);vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#f9fafb}
+.tbl .hi{font-weight:600;color:#185FA5}.tbl .ok{color:#065f46;font-weight:500}.tbl .dn{color:#b91c1c;font-weight:500}.tbl .wn{color:#92400e;font-weight:500}.tbl .mu{color:var(--color-text-secondary);font-size:10px}
+.tbl-h{color:#0F6E56;font-weight:600}
+.tbl-tr{background:var(--color-background-secondary);font-weight:600}
+/* badges */
+.badge{font-size:10px;padding:2px 6px;border-radius:3px;display:inline-block;white-space:nowrap;font-weight:500}
+.bd{background:#fee2e2;color:#b91c1c}.bw{background:#fef3c7;color:#92400e}.bs{background:#d1fae5;color:#065f46}.bi{background:#dbeafe;color:#1e40af}.bg{background:#f3f4f6;color:#6b7280}
+/* info boxes */
+.ib{padding:.6rem .9rem;border-radius:var(--border-radius-md);font-size:12px;margin-bottom:.7rem;border:.5px solid var(--color-border-tertiary)}
+.ib-w{background:#fef3c7}.ib-i{background:#dbeafe}.ib-s{background:#d1fae5}.ib-d{background:#fee2e2}
+.ib-t{font-weight:600;margin-bottom:2px}
+.ib-w .ib-t,.ib-w .ib-b{color:#92400e}.ib-i .ib-t,.ib-i .ib-b{color:#1e40af}.ib-s .ib-t,.ib-s .ib-b{color:#065f46}.ib-d .ib-t,.ib-d .ib-b{color:#b91c1c}
+/* risk lights */
+.rl{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:.85rem;border-radius:var(--border-radius-lg);border:.5px solid var(--color-border-tertiary);text-align:center;background:#fafafa}
+.rl-dot{width:32px;height:32px;border-radius:50%;margin-bottom:7px}
+.rl-r{background:#fee2e2;border:2px solid #b91c1c}.rl-y{background:#fef3c7;border:2px solid #d97706}.rl-g{background:#d1fae5;border:2px solid #059669}
+.rl-l{font-size:12px;font-weight:600;color:var(--color-text-primary)}
+.rl-s{font-size:10px;color:var(--color-text-secondary);margin-top:2px}
+/* flow */
+.flow{display:flex;margin-bottom:.85rem;border-radius:var(--border-radius-lg);overflow:hidden;border:.5px solid var(--color-border-tertiary)}
+.fn{flex:1;padding:.75rem .9rem}
+.fn-eu{background:#dbeafe}.fn-imp{background:#fef3c7}.fn-tr{background:#f3f4f6}
+.fa{display:flex;align-items:center;justify-content:center;padding:0 8px;background:#f3f4f6;color:#6b7280;font-size:18px;flex-shrink:0}
+.fn-t{font-size:11px;font-weight:600;margin-bottom:3px}
+.fn-eu .fn-t{color:#1e40af}.fn-imp .fn-t{color:#92400e}.fn-tr .fn-t{color:#1a1a1a}
+.fn-b{font-size:11px;line-height:1.5}
+.fn-eu .fn-b{color:#1e40af}.fn-imp .fn-b{color:#92400e}.fn-tr .fn-b{color:#6b7280}
+/* scenarios */
+.sc3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:.85rem}
+@media(max-width:600px){.sc3{grid-template-columns:1fr}}
+.sc{border:.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:.75rem .9rem;position:relative;overflow:hidden;background:#fafafa}
+.sc::before{content:'';position:absolute;top:0;left:0;bottom:0;width:4px}
+.sc-a::before{background:#ef4444}.sc-b::before{background:#f59e0b}.sc-c::before{background:#10b981}
+.sc-h{font-size:12px;font-weight:600;color:var(--color-text-primary);margin-bottom:4px;padding-left:10px}
+.sc-s{font-size:11px;color:var(--color-text-secondary);padding-left:10px;margin-bottom:6px;line-height:1.5}
+.sc-imp{font-size:11px;padding:5px 8px;border-radius:var(--border-radius-md);margin-top:6px}
+.sc-a .sc-imp{background:#fee2e2;color:#b91c1c}.sc-b .sc-imp{background:#fef3c7;color:#92400e}.sc-c .sc-imp{background:#d1fae5;color:#065f46}
+/* field */
+.field{margin-bottom:9px}
+.field label{display:block;font-size:11px;color:var(--color-text-secondary);margin-bottom:3px}
+.fr{display:flex;gap:4px;align-items:center}
+.fr input{flex:1;padding:5px 8px;font-size:12px}
+.fr select{padding:5px 6px;font-size:11px;min-width:70px}
+.unit{font-size:10px;color:var(--color-text-secondary);white-space:nowrap;min-width:65px}
+.ef-tag{font-size:9px;padding:1px 5px;border-radius:3px;background:#f3f4f6;color:#6b7280;margin-left:4px}
+.scope-hd{font-size:11px;font-weight:600;color:var(--color-text-primary);padding:5px 8px;background:#f3f4f6;border-radius:var(--border-radius-md);margin:8px 0 6px;display:flex;justify-content:space-between;align-items:center}
+.s1t{background:#d1fae5;color:#065f46;font-size:9px;padding:2px 5px;border-radius:3px;font-weight:600}
+.s2t{background:#dbeafe;color:#1e40af;font-size:9px;padding:2px 5px;border-radius:3px;font-weight:600}
+/* proc btn */
+.proc-btn{padding:4px 11px;font-size:11px;border:.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:#fff;color:var(--color-text-secondary);cursor:pointer;margin-right:4px;margin-bottom:4px;transition:.15s}
+.proc-btn:hover{background:#f3f4f6}
+.proc-btn.on{background:#0F6E56;border-color:#0F6E56;color:#fff}
+/* decisions */
+.dec-row{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:.5px solid var(--color-border-tertiary)}
+.dec-row:last-child{border-bottom:none}
+.dec-num{width:22px;height:22px;border-radius:50%;background:#185FA5;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
+.dec-t{font-size:13px;font-weight:600;color:var(--color-text-primary)}
+.dec-s{font-size:11px;color:var(--color-text-secondary);margin-top:2px;line-height:1.5}
+.dec-m{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
+/* chk */
+.chk{display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:.5px solid var(--color-border-tertiary)}
+.chk:last-child{border-bottom:none}
+.chk-dot{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;font-size:9px;font-weight:700}
+.c-ok{background:#d1fae5;color:#065f46}.c-no{background:#fee2e2;color:#b91c1c}
+.chk-t{font-size:12px;font-weight:600;color:var(--color-text-primary)}
+.chk-d{font-size:11px;color:var(--color-text-secondary);margin-top:1px}
+.div{border:none;border-top:.5px solid var(--color-border-tertiary);margin:.7rem 0}
+.chart-w{position:relative;width:100%}
+.btn-p{padding:8px 15px;font-size:12px;font-weight:500;background:#185FA5;color:#fff;border:none;border-radius:var(--border-radius-md);cursor:pointer;transition:.15s}
+.btn-p:hover{background:#0C447C}
+.btn-g{padding:8px 15px;font-size:12px;font-weight:500;background:#0F6E56;color:#fff;border:none;border-radius:var(--border-radius-md);cursor:pointer;transition:.15s}
+.btn-g:hover{background:#085041}
+.ai-out{background:#f3f4f6;border-radius:var(--border-radius-md);padding:.85rem;font-size:12px;color:var(--color-text-primary);line-height:1.7;margin-top:.75rem;white-space:pre-wrap;border:.5px solid var(--color-border-secondary)}
+.inact{display:flex;gap:10px;margin-bottom:.85rem}
+.inact-s{flex:1;padding:.8rem 1rem;border-radius:var(--border-radius-lg);border:.5px solid var(--color-border-tertiary)}
+.ia-l{background:#fee2e2}.ia-r{background:#d1fae5}
+.ia-h{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.ia-l .ia-h{color:#b91c1c}.ia-r .ia-h{color:#065f46}
+.ia-n{font-size:22px;font-weight:700}
+.ia-l .ia-n{color:#b91c1c}.ia-r .ia-n{color:#065f46}
+.ia-s{font-size:10px;color:#6b7280;margin-top:3px}
+.sav-banner{background:#dbeafe;border:.5px solid #bfdbfe;border-radius:var(--border-radius-lg);padding:.8rem 1.1rem;margin-bottom:.85rem;display:flex;justify-content:space-between;align-items:center}
+.int-row{display:flex;justify-content:space-between;padding:5px 0;border-bottom:.5px solid var(--color-border-tertiary);font-size:12px}
+.int-row:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+<div class="w">
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="brand">
+    <i class="ti ti-leaf" style="font-size:16px;color:#10b981"></i>
+    <span class="brand-name">Carbon Cockpit</span>
+    <span class="badge bi">Demo v1</span>
+    <span class="badge bg">Alüminyum Ekstrüzyon · Trakya</span>
+  </div>
+  <div class="params">
+    <div class="pi"><span>Üretim:</span><input id="pp-prod" type="number" value="10000" oninput="recalcAll()" style="width:75px"><span>ton/yıl</span></div>
+    <div class="pi"><span>Yoğunluk:</span><input id="pp-int" type="number" value="1.1" step="0.05" oninput="recalcAll()" style="width:60px"><span>tCO₂e/t</span></div>
+    <div class="pi"><span>ETS:</span><input id="pp-ets" type="number" value="75" oninput="recalcAll()" style="width:55px"><span>€/t</span></div>
+    <div class="pi"><span>EUR/TRY:</span><input id="pp-try" type="number" value="38" oninput="recalcAll()" style="width:50px"></div>
+    <span style="font-size:10px;color:#6b7280" id="last-upd">—</span>
+  </div>
+</div>
+
+<!-- API KEY ROW -->
+<div class="api-row">
+  <i class="ti ti-key" style="font-size:14px;color:#92400e"></i>
+  <span>Anthropic API Anahtarı (AI butonları için gerekli):</span>
+  <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." style="width:280px;padding:4px 8px;font-size:11px">
+  <a href="https://console.anthropic.com/settings/keys" target="_blank">→ Anahtar al</a>
+  &nbsp;
+  <button onclick="exportData()" style="padding:3px 10px;font-size:11px;background:transparent;border:0.5px solid #059669;border-radius:4px;color:#065f46;cursor:pointer">⬇ Veriyi Dışa Aktar</button>
+  <button onclick="importData()" style="padding:3px 10px;font-size:11px;background:transparent;border:0.5px solid #1d4ed8;border-radius:4px;color:#1e40af;cursor:pointer">⬆ Veriyi İçe Aktar</button>
+  <button onclick="clearData()" style="padding:3px 10px;font-size:11px;background:transparent;border:0.5px solid #d97706;border-radius:4px;color:#92400e;cursor:pointer">Sıfırla</button>
+  <span style="font-size:10px;color:#92400e;margin-left:6px">Tarayıcıya otomatik kaydedilir · JSON ile taşınabilir</span>
+</div>
+
+<!-- VIEW SWITCH -->
+<div class="vs-wrap">
+  <button class="vs-btn on-exec" id="vs-exec" onclick="setView('exec')">
+    <i class="ti ti-chart-line"></i> Yönetim Görünümü
+  </button>
+  <button class="vs-btn" id="vs-hse" onclick="setView('hse')">
+    <i class="ti ti-shield-check"></i> HSE Teknik Görünümü
+  </button>
+</div>
+
+<!-- EXEC TABS -->
+<div id="exec-tabs" class="tabs">
+  <button class="tb on-e" onclick="showTab('exec','ov')" id="te-ov"><i class="ti ti-layout-dashboard"></i> Genel Bakış</button>
+  <button class="tb" onclick="showTab('exec','fin')" id="te-fin"><i class="ti ti-report-money"></i> Finansal Projeksiyon</button>
+  <button class="tb" onclick="showTab('exec','comp')" id="te-comp"><i class="ti ti-world"></i> Rekabet Analizi</button>
+  <button class="tb" onclick="showTab('exec','roi')" id="te-roi"><i class="ti ti-trending-up"></i> Yatırım & ROI</button>
+  <button class="tb" onclick="showTab('exec','dec')" id="te-dec"><i class="ti ti-checklist"></i> Yönetim Kararları</button>
+</div>
+
+<!-- HSE TABS -->
+<div id="hse-tabs" class="tabs" style="display:none">
+  <button class="tb on-h" onclick="showTab('hse','sin')" id="th-sin"><i class="ti ti-vector-triangle"></i> Sınır & Proses</button>
+  <button class="tb" onclick="showTab('hse','env')" id="th-env"><i class="ti ti-flame"></i> Emisyon Envanteri</button>
+  <button class="tb" onclick="showTab('hse','ef')" id="th-ef"><i class="ti ti-atom"></i> Faktör Kütüphanesi</button>
+  <button class="tb" onclick="showTab('hse','izl')" id="th-izl"><i class="ti ti-calendar-stats"></i> İzleme Planı</button>
+  <button class="tb" onclick="showTab('hse','ver')" id="th-ver"><i class="ti ti-certificate"></i> Doğrulama Hazırlık</button>
+</div>
+
+<!-- ═══ EXEC PAGES ═══ -->
+<div id="exec-pages">
+<div class="page on" id="pe-ov">
+  <div class="g5">
+    <div class="kpi"><div class="kpi-l">CBAM 2026</div><div class="kpi-v" id="ov-26">—</div><div class="kpi-s">ilk yıl</div><div class="kpi-b" id="ov-26t" style="color:#6b7280">—</div></div>
+    <div class="kpi"><div class="kpi-l">CBAM 2030</div><div class="kpi-v" id="ov-30" style="color:#92400e">—</div><div class="kpi-s">%48.5 faz</div><div class="kpi-b" id="ov-30t" style="color:#92400e">—</div></div>
+    <div class="kpi"><div class="kpi-l">5 Yıl Birikimli</div><div class="kpi-v" id="ov-cum" style="color:#b91c1c">—</div><div class="kpi-s">2026–2030</div><div class="kpi-b" id="ov-cumt" style="color:#b91c1c">—</div></div>
+    <div class="kpi"><div class="kpi-l">Ton Başına (2030)</div><div class="kpi-v" id="ov-pton">—</div><div class="kpi-s">€/ton ürün</div></div>
+    <div class="kpi"><div class="kpi-l">Default Farkı</div><div class="kpi-v" id="ov-gap" style="color:#065f46">—</div><div class="kpi-s">5 yıl tasarruf pot.</div></div>
+  </div>
+  <div class="g4">
+    <div class="rl"><div class="rl-dot" id="rl-fin-dot"></div><div class="rl-l">Finansal Risk</div><div class="rl-s" id="rl-fin-s">—</div></div>
+    <div class="rl"><div class="rl-dot rl-r"></div><div class="rl-l">Veri Hazırlığı</div><div class="rl-s">Veri doğrulanmamış</div></div>
+    <div class="rl"><div class="rl-dot rl-y"></div><div class="rl-l">Rekabet Pozisyonu</div><div class="rl-s">AB rakiplerinden yüksek</div></div>
+    <div class="rl"><div class="rl-dot rl-r"></div><div class="rl-l">Regülasyon Uyumu</div><div class="rl-s">Verifier seçilmedi</div></div>
+  </div>
+  <div class="card">
+    <div class="card-t"><i class="ti ti-scale"></i> CBAM — Hukuki Yükümlülük vs Ticari Gerçek</div>
+    <div class="flow">
+      <div class="fn fn-eu"><div class="fn-t"><i class="ti ti-building-bank" style="margin-right:3px;font-size:11px"></i>AB Komisyonu</div><div class="fn-b">Her ton gömülü emisyon için sertifika satın alınmasını zorunlu kılar.</div></div>
+      <div class="fa">→</div>
+      <div class="fn fn-imp"><div class="fn-t"><i class="ti ti-truck-delivery" style="margin-right:3px;font-size:11px"></i>AB İthalatçısı</div><div class="fn-b">Yasal yükümlü — sertifikayı satın alır, beyanı verir. Ama maliyeti tedarikçiyle müzakere eder.</div></div>
+      <div class="fa">↔</div>
+      <div class="fn fn-tr"><div class="fn-t"><i class="ti ti-building-factory-2" style="margin-right:3px;font-size:11px"></i>Türk Üretici</div><div class="fn-b">Doğrudan CBAM'a tabi değil — ama alıcı maliyeti fiyata yansıtır veya tedarikçi değiştirir.</div></div>
+    </div>
+    <div class="sc3">
+      <div class="sc sc-a"><div class="sc-h">Senaryo A — Veri Yok</div><div class="sc-s">Default değer → alıcı yüksek maliyet → fiyat baskısı gelir</div><div class="sc-imp">Sonuç: Fiyat indirimi talebi veya müşteri kaybı</div></div>
+      <div class="sc sc-b"><div class="sc-h">Senaryo B — Paylaşımlı</div><div class="sc-s">Sözleşmede CBAM formülü tanımlı, maliyet ikiye bölünüyor</div><div class="sc-imp">Sonuç: Verified veri payı düşürür, müzakere gücü belirler</div></div>
+      <div class="sc sc-c"><div class="sc-h">Senaryo C — Verified Data</div><div class="sc-s">Doğrulanmış düşük yoğunluk → alıcı minimum maliyet öder</div><div class="sc-imp">Sonuç: Rekabet avantajı — alıcı bu tedarikçiyi tutar</div></div>
+    </div>
+    <div style="padding:.65rem .9rem;background:#f3f4f6;border-radius:var(--border-radius-md);font-size:11px;color:#6b7280"><span style="font-weight:600;color:#1a1a1a">Yönetim için tek cümle:</span> CBAM'ın hukuki yükümlüsü alıcınız, ama maliyeti size yansıtma gücü onun elinde — verified veri ile bu gücü dengeleyebilir, ihracat sürdürülebilirliğini koruyabilirsiniz.</div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-t"><i class="ti ti-alert-triangle"></i> Hazır / Hazır Değil Farkı (5 Yıl)</div><div class="inact" id="inact-box"></div><div style="font-size:10px;color:#6b7280">Default: AB'nin TR ikincil alüminyum için belirlediği muhafazakâr değer (~1.8 tCO₂e/ton).</div></div>
+    <div class="card"><div class="card-t"><i class="ti ti-chart-line"></i> Maliyet Trajektörisi 2026–2030</div><div class="chart-w" style="height:170px"><canvas id="ch-traj"></canvas></div></div>
+  </div>
+</div>
+
+<div class="page" id="pe-fin">
+  <div class="sav-banner">
+    <div><div style="font-size:12px;font-weight:600;color:#1e40af">5 Yıl Doğrulama Tasarruf Potansiyeli (Default → Verified)</div>
+    <div style="font-size:11px;color:#1e40af;margin-top:3px">Satış fiyatı: <input id="pp-price" type="number" value="2200" oninput="recalcAll()" style="width:65px;padding:2px 5px;font-size:11px;margin:0 3px"> €/ton | AB ihracat: <input id="pp-exp" type="number" value="60" oninput="recalcAll()" style="width:40px;padding:2px 5px;font-size:11px;margin:0 3px"> %</div></div>
+    <div style="text-align:right"><div style="font-size:26px;font-weight:700;color:#1e40af" id="fin-sav">—</div><div style="font-size:12px;color:#1e40af" id="fin-sav-t">—</div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-t"><i class="ti ti-table"></i> Yıllık CBAM Maliyet Tablosu</div><table class="tbl"><thead><tr><th>Yıl</th><th>Oran</th><th>Default (€)</th><th>Verified (€)</th><th>Fark (€)</th><th>TRY Karşılığı</th></tr></thead><tbody id="fin-tbl"></tbody></table></div>
+    <div class="card"><div class="card-t"><i class="ti ti-chart-area"></i> Birikimli Maliyet</div><div class="chart-w" style="height:180px"><canvas id="ch-cum"></canvas></div><div id="rev-impact" style="margin-top:.6rem"></div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-t"><i class="ti ti-bolt"></i> ETS Fiyat Duyarlılığı (2030)</div><table class="tbl"><thead><tr><th>ETS Fiyatı</th><th>CBAM 2030</th><th>5 Yıl Toplam</th></tr></thead><tbody id="sens-tbl"></tbody></table></div>
+    <div class="card"><div class="card-t"><i class="ti ti-calculator"></i> Yoğunluk Duyarlılığı (2030)</div><table class="tbl"><thead><tr><th>Yoğunluk</th><th>CBAM 2030</th><th>Durum</th></tr></thead><tbody id="int-tbl"></tbody></table></div>
+  </div>
+</div>
+
+<div class="page" id="pe-comp">
+  <div class="ib ib-i"><div class="ib-t">CBAM'ın rekabet etkisi</div><div class="ib-b">CBAM, AB alıcısının gözünde her tedarikçinin "karbon maliyetli gerçek fiyatını" eşitlemeye çalışır. Düşük yoğunluklu Türk üretici Çin rakibine karşı avantaj kazanırken AB rakibiyle rekabet için yoğunluk düşürülmeli.</div></div>
+  <div class="g2">
+    <div class="card"><div class="card-t"><i class="ti ti-chart-bar"></i> Karbon Yoğunluğu Karşılaştırması (tCO₂e/ton)</div><div class="chart-w" style="height:210px"><canvas id="ch-comp1"></canvas></div></div>
+    <div class="card"><div class="card-t"><i class="ti ti-coins"></i> 2030 CBAM Maliyet — Ton Başına (€/ton)</div><div class="chart-w" style="height:210px"><canvas id="ch-comp2"></canvas></div></div>
+  </div>
+  <div class="card"><div class="card-t"><i class="ti ti-scale"></i> Rekabetçi Konum Tablosu</div><table class="tbl"><thead><tr><th>Üretici / Bölge</th><th>Yoğunluk</th><th>2030 €/ton</th><th>Sizinle Fark</th><th>Konum</th></tr></thead><tbody id="comp-tbl"></tbody></table><div class="ib ib-w" style="margin-top:.7rem"><div class="ib-t" id="comp-it">—</div><div class="ib-b" id="comp-ib">—</div></div></div>
+</div>
+
+<div class="page" id="pe-roi">
+  <div class="g3" id="roi-kpis"></div>
+  <div class="g2">
+    <div class="card"><div class="card-t"><i class="ti ti-chart-bar"></i> Yatırım vs Tasarruf (€)</div><div class="chart-w" style="height:195px"><canvas id="ch-roi"></canvas></div></div>
+    <div class="card">
+      <div class="card-t"><i class="ti ti-list"></i> Yatırım Kalemleri</div>
+      <div class="field"><label>Alt sayaç sistemi (tek seferlik)</label><div class="fr"><input id="pi-meter" type="number" value="80" oninput="recalcAll()"><span class="unit">bin €</span></div></div>
+      <div class="field"><label>Verifier ücreti (yıllık)</label><div class="fr"><input id="pi-verif" type="number" value="35" oninput="recalcAll()"><span class="unit">bin €/yıl</span></div></div>
+      <div class="field"><label>Sistem & metodoloji kurulum</label><div class="fr"><input id="pi-sys" type="number" value="40" oninput="recalcAll()"><span class="unit">bin €</span></div></div>
+      <div class="field" style="margin-bottom:12px"><label>İç kaynak (HSE/Sürd.) yıllık</label><div class="fr"><input id="pi-hr" type="number" value="25" oninput="recalcAll()"><span class="unit">bin €/yıl</span></div></div>
+      <div id="roi-sum"></div>
+    </div>
+  </div>
+  <div class="card"><div class="card-t"><i class="ti ti-route"></i> Enerji Verimliliği Aksiyonları</div><table class="tbl"><thead><tr><th>Aksiyon</th><th>Yatırım</th><th>Yoğunluk Azaltma</th><th>Yıllık Tasarruf (2030)</th><th>Geri Ödeme</th></tr></thead><tbody id="ea-tbl"></tbody></table></div>
+</div>
+
+<div class="page" id="pe-dec">
+  <div class="card"><div class="card-t"><i class="ti ti-alert-triangle"></i> Yönetimin Onaylaması Gereken 5 Kritik Karar</div><div id="dec-list"></div></div>
+  <div class="g2">
+    <div class="card"><div class="card-t"><i class="ti ti-calendar-event"></i> Aksiyon Takvimi</div>
+    <table class="tbl"><thead><tr><th>Dönem</th><th>Aksiyon</th><th>Sorumlu</th><th>Durum</th></tr></thead><tbody>
+      <tr><td>Haz 2025</td><td>Verifier seç & sözleşme yap</td><td>CFO / HSE</td><td><span class="badge bd">Acil</span></td></tr>
+      <tr><td>Haz 2025</td><td>Alt sayaç yatırım kararı</td><td>GM / Teknik</td><td><span class="badge bd">Karar bekliyor</span></td></tr>
+      <tr><td>Eyl 2025</td><td>İzleme metodoloji belgesi</td><td>HSE</td><td><span class="badge bw">Hazırlanıyor</span></td></tr>
+      <tr><td>Ara 2025</td><td>2026 CBAM bütçe karşılığı</td><td>CFO</td><td><span class="badge bw">Planlanacak</span></td></tr>
+      <tr><td>Mar 2026</td><td>Verifier doğrulama başlat</td><td>HSE</td><td><span class="badge bg">2026 hedefi</span></td></tr>
+      <tr><td>Eyl 2027</td><td>İlk CBAM beyannamesi</td><td>CFO / Legal</td><td><span class="badge bg">Son tarih</span></td></tr>
+    </tbody></table></div>
+    <div class="card">
+      <div class="card-t"><i class="ti ti-file-report"></i> Yönetim Brifing Raporu (AI)</div>
+      <div style="font-size:11px;color:#6b7280;margin-bottom:.7rem">Parametrelere göre yönetim kuruluna sunulmaya hazır brifing. API anahtarı girilmesi gerekli.</div>
+      <button class="btn-p" id="exec-ai-btn" onclick="getExecAI()"><i class="ti ti-brain" style="margin-right:5px"></i>Rapor Oluştur ↗</button>
+      <div class="ai-out" id="exec-ai-out" style="display:none"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ HSE PAGES ═══ -->
+<div id="hse-pages" style="display:none">
+<div class="page on" id="ph-sin">
+  <div class="ib ib-s"><div class="ib-t"><i class="ti ti-check" style="margin-right:3px;font-size:11px"></i>İkincil üretim profili — PFC emisyonu yok</div><div class="ib-b">Bu tesis hurdadan/dış tedarikten alınan billetle ekstrüzyon yapıyor. CF₄/C₂F₆ (PFC) bu tesis için geçerli değil. Ana kaynaklar: billet ısıtma fırınları (S1) ve ekstrüzyon presi (S2).</div></div>
+  <div style="margin-bottom:.85rem"><div style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.4rem;font-weight:600">Tesis Tipi</div><div id="proc-btns"><button class="proc-btn on" onclick="setProc('ex',this)">Sadece Ekstrüzyon</button><button class="proc-btn" onclick="setProc('bc',this)">+ Billet Döküm</button><button class="proc-btn" onclick="setProc('sf',this)">+ Yüzey İşlem</button><button class="proc-btn" onclick="setProc('full',this)">Tam Entegre</button></div></div>
+  <div class="g2">
+    <div class="card"><div class="card-t"><i class="ti ti-vector-triangle"></i> Proses Akışı</div><div id="proc-flow" style="margin-bottom:.75rem"></div><div class="div"></div><div class="card-t" style="margin-top:.5rem"><i class="ti ti-map-pin"></i> Kapsama Dahil Üniteler</div><div id="proc-units"></div></div>
+    <div class="card"><div class="card-t"><i class="ti ti-target"></i> Scope Kapsam Tablosu</div><table class="tbl"><thead><tr><th>Kaynak</th><th>Scope</th><th>CBAM</th><th>Öncelik</th></tr></thead><tbody id="scope-tbl"></tbody></table><div class="ib ib-i" style="margin-top:.65rem;font-size:10px"><div class="ib-t">Eloksal & toz boya ürünleri</div><div class="ib-b">Yüzey işlem uygulanmış profil, ana profilin CN kodunu (7604) taşır. CBAM için ayrı hesap gerekmez.</div></div></div>
+  </div>
+</div>
+
+<div class="page" id="ph-env">
+  <div class="g4">
+    <div class="kpi"><div class="kpi-l">Scope 1</div><div class="kpi-v" id="he-s1">0.0</div><div class="kpi-s">tCO₂e/yıl</div></div>
+    <div class="kpi"><div class="kpi-l">Scope 2</div><div class="kpi-v" id="he-s2">0.0</div><div class="kpi-s">tCO₂e/yıl</div></div>
+    <div class="kpi"><div class="kpi-l">CBAM Bazı</div><div class="kpi-v" id="he-cbam">0.0</div><div class="kpi-s">S1+S2</div></div>
+    <div class="kpi"><div class="kpi-l">Yoğunluk</div><div class="kpi-v" id="he-int">—</div><div class="kpi-s">tCO₂e/ton</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-t"><i class="ti ti-flame"></i> Scope 1 — Fırın & Mobil</div>
+      <div class="scope-hd"><span><span class="s1t">Billet Isıtma</span> Fırını</span><span class="s1t">S1</span></div>
+      <div class="field"><label>Doğal gaz <span class="ef-tag">2.02 kgCO₂e/Sm³ — IPCC AR5</span></label><div class="fr"><input type="number" id="hf-ng1" min="0" placeholder="0" oninput="calcHSE()"><select><option>Sayaç</option><option>Fatura</option><option>Tahmin</option></select><span class="unit">Sm³/yıl</span></div></div>
+      <div class="scope-hd"><span><span class="s1t">Yaşlandırma</span> Fırını</span><span class="s1t">S1</span></div>
+      <div class="field"><label>Doğal gaz <span class="ef-tag">2.02 kgCO₂e/Sm³</span></label><div class="fr"><input type="number" id="hf-ng2" min="0" placeholder="0" oninput="calcHSE()"><select><option>Sayaç</option><option>Fatura</option><option>Tahmin</option></select><span class="unit">Sm³/yıl</span></div></div>
+      <div id="hf-bc" style="display:none"><div class="scope-hd"><span><span class="s1t">Eritme</span> Fırını (Billet Döküm)</span><span class="s1t">S1</span></div><div class="field"><label>Doğal gaz <span class="ef-tag">2.02 kgCO₂e/Sm³</span></label><div class="fr"><input type="number" id="hf-ng3" min="0" placeholder="0" oninput="calcHSE()"><select><option>Sayaç</option><option>Fatura</option><option>Tahmin</option></select><span class="unit">Sm³/yıl</span></div></div></div>
+      <div id="hf-sf" style="display:none"><div class="scope-hd"><span><span class="s1t">Toz Boya</span> Pişirme Fırını</span><span class="s1t">S1</span></div><div class="field"><label>Doğal gaz <span class="ef-tag">2.02 kgCO₂e/Sm³</span></label><div class="fr"><input type="number" id="hf-ng4" min="0" placeholder="0" oninput="calcHSE()"><select><option>Sayaç</option><option>Fatura</option><option>Tahmin</option></select><span class="unit">Sm³/yıl</span></div></div></div>
+      <div class="scope-hd"><span><span class="s1t">Mobil</span> Forklift</span><span class="s1t">S1</span></div>
+      <div class="field"><label>Motorin <span class="ef-tag">2.68 kgCO₂e/L</span></label><div class="fr"><input type="number" id="hf-dsl" min="0" placeholder="0" oninput="calcHSE()"><select><option>Depo</option><option>Fatura</option><option>Tahmin</option></select><span class="unit">litre/yıl</span></div></div>
+      <div class="ib ib-s" style="margin-top:.5rem;font-size:10px"><div class="ib-t">PFC (CF₄/C₂F₆) — Bu Tesis İçin Geçersiz</div><div class="ib-b">Ekstrüzyon tesisi Hall-Héroult elektrolizi kullanmaz. CF₄/C₂F₆ ölçümü gerekmez.</div></div>
+    </div>
+    <div class="card">
+      <div class="card-t"><i class="ti ti-bolt"></i> Scope 2 — Elektrik (Dominant Kaynak)</div>
+      <div class="ib ib-i" style="font-size:11px;margin-bottom:8px"><div class="ib-t">Elektrik bu tesislerde toplam emisyonun %50–70'ini oluşturur</div><div class="ib-b">Ekstrüzyon presi yüksek güç çeker. Alt sayaç yoksa proses bazında ayrıştırma yapılamaz.</div></div>
+      <div class="field"><label>Toplam elektrik tüketimi</label><div class="fr"><input type="number" id="hf-elec" min="0" placeholder="0" oninput="calcHSE()"><select><option>Fatura</option><option>Ana Sayaç</option></select><span class="unit">MWh/yıl</span></div></div>
+      <div class="field"><label>Türkiye şebeke EF <span class="ef-tag">TEIAŞ 2024 — location-based</span></label><div class="fr"><input type="number" id="hf-gef" value="0.458" step="0.001" oninput="calcHSE()"><span class="unit">kgCO₂/kWh</span></div></div>
+      <div class="field"><label>Yenilenebilir enerji payı <span class="ef-tag">I-REC/YEKDEM sertifikası</span></label><div class="fr"><input type="number" id="hf-ren" min="0" max="100" placeholder="0" oninput="calcHSE()"><select><option>I-REC</option><option>YEKDEM</option><option>Tahmini</option></select><span class="unit">%</span></div></div>
+      <div class="ib ib-w" style="font-size:10px;margin-top:5px"><div class="ib-t">I-REC ve CBAM çelişkisi</div><div class="ib-b">ESG'de market-based kullanılabilir. CBAM hesabında AB location-based (0.458) zorunlu. İkisini ayrı raporlayın.</div></div>
+      <div class="div"></div>
+      <div class="field"><label>Üretilen profil miktarı</label><div class="fr"><input type="number" id="hf-prod" min="0" placeholder="0" oninput="calcHSE()"><select><option>MES</option><option>ERP</option><option>Tartı</option></select><span class="unit">ton/yıl</span></div></div>
+      <div style="padding:7px 9px;background:#f3f4f6;border-radius:var(--border-radius-md);margin-top:5px">
+        <div class="int-row"><span style="color:#6b7280">S1 yoğunluk</span><span id="hi-s1" style="font-weight:600">—</span></div>
+        <div class="int-row"><span style="color:#6b7280">S2 yoğunluk</span><span id="hi-s2" style="font-weight:600">—</span></div>
+        <div class="int-row"><span style="color:#6b7280">Toplam yoğunluk</span><span id="hi-tot" style="font-weight:600">—</span></div>
+        <div class="int-row"><span style="color:#6b7280">Benchmark (ikincil TR)</span><span style="color:#6b7280">~0.8–1.5 tCO₂e/ton</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="card"><div class="card-t"><i class="ti ti-chart-bar"></i> Emisyon Kaynakları Dağılımı</div><div class="chart-w" style="height:165px"><canvas id="ch-henv"></canvas></div></div>
+</div>
+
+<div class="page" id="ph-ef">
+  <div class="g2">
+    <div class="card"><div class="card-t"><i class="ti ti-flame"></i> Scope 1 Emisyon Faktörleri</div>
+    <table class="tbl"><thead><tr><th>Kaynak</th><th>EF</th><th>Birim</th><th>Referans</th><th>GWP</th><th>Durum</th></tr></thead><tbody>
+      <tr><td>Doğal gaz</td><td class="tbl-h">2.020</td><td>kgCO₂e/Sm³</td><td>IPCC 2006 GL / TEDB</td><td>AR5</td><td><span class="badge bs">Onaylı</span></td></tr>
+      <tr><td>Motorin</td><td class="tbl-h">2.680</td><td>kgCO₂e/L</td><td>IPCC 2006 GL</td><td>AR5</td><td><span class="badge bs">Onaylı</span></td></tr>
+      <tr><td>LPG</td><td class="tbl-h">3.020</td><td>kgCO₂e/kg</td><td>IPCC 2006 GL</td><td>AR5</td><td><span class="badge bs">Onaylı</span></td></tr>
+      <tr><td style="text-decoration:line-through;color:#9ca3af">CF₄ (PFC)</td><td style="color:#9ca3af">—</td><td style="color:#9ca3af">—</td><td style="color:#9ca3af">—</td><td style="color:#9ca3af">—</td><td><span class="badge bg">Bu tesis için geçersiz</span></td></tr>
+      <tr><td style="text-decoration:line-through;color:#9ca3af">C₂F₆ (PFC)</td><td style="color:#9ca3af">—</td><td style="color:#9ca3af">—</td><td style="color:#9ca3af">—</td><td style="color:#9ca3af">—</td><td><span class="badge bg">Bu tesis için geçersiz</span></td></tr>
+    </tbody></table></div>
+    <div class="card"><div class="card-t"><i class="ti ti-bolt"></i> Scope 2 Emisyon Faktörleri</div>
+    <table class="tbl"><thead><tr><th>Yöntem</th><th>EF</th><th>Referans</th><th>CBAM</th></tr></thead><tbody>
+      <tr><td>Location-based (TR)</td><td class="tbl-h">0.458</td><td>TEIAŞ/EPDK 2024</td><td><span class="badge bs">Bu kullanılır</span></td></tr>
+      <tr><td>Market-based (I-REC)</td><td class="tbl-h">0.000</td><td>I-REC Standard</td><td><span class="badge bd">CBAM kabul etmez</span></td></tr>
+    </tbody></table>
+    <div class="ib ib-w" style="margin-top:.65rem;font-size:11px"><div class="ib-t">GWP Versiyon Notu</div><div class="ib-b">CBAM Yönetmeliği AR5 GWP referans alır. CO₂ için fark yok. Raporunuzda kullandığınız versiyonu açıkça belirtin.</div></div></div>
+  </div>
+</div>
+
+<div class="page" id="ph-izl">
+  <div class="g2">
+    <div class="card"><div class="card-t"><i class="ti ti-user-check"></i> Sorumluluk Matrisi</div>
+    <table class="tbl"><thead><tr><th>Aktivite</th><th>Sorumlu</th><th>Sıklık</th><th>Sistem</th><th>Durum</th></tr></thead><tbody>
+      <tr><td>Doğal gaz sayaç okuma</td><td>Enerji Müh.</td><td>Aylık</td><td>ERP/Excel</td><td><span class="badge bw">Kurulacak</span></td></tr>
+      <tr><td>Elektrik faturası girişi</td><td>Enerji Müh.</td><td>Aylık</td><td>ERP</td><td><span class="badge bw">Kurulacak</span></td></tr>
+      <tr><td>Ekstrüzyon pres alt sayaç</td><td>Bakım</td><td>Aylık</td><td>SCADA/Manuel</td><td><span class="badge bd">Alt sayaç yok</span></td></tr>
+      <tr><td>Motorin depo çıkışı</td><td>Depo</td><td>Aylık</td><td>Excel</td><td><span class="badge bw">İyileştirilmeli</span></td></tr>
+      <tr><td>Üretim miktarı onayı</td><td>Üretim Müd.</td><td>Aylık</td><td>MES/ERP</td><td><span class="badge bs">Genellikle mevcut</span></td></tr>
+      <tr><td>Verifier koordinasyonu</td><td>HSE Müd.</td><td>Yıllık</td><td>Dış</td><td><span class="badge bd">Seçilmedi</span></td></tr>
+    </tbody></table></div>
+    <div class="card"><div class="card-t"><i class="ti ti-calendar-event"></i> CBAM Kritik Takvim</div>
+    <table class="tbl"><thead><tr><th>Tarih</th><th>Zorunluluk</th><th>Durum</th></tr></thead><tbody>
+      <tr><td>Haz 2025</td><td>İzleme metodoloji belgesi hazırla</td><td><span class="badge bd">Gecikme riski</span></td></tr>
+      <tr><td>Eyl 2025</td><td>Alt sayaç sistemini planla & ihale et</td><td><span class="badge bd">Kritik</span></td></tr>
+      <tr><td>Oca 2026</td><td>CBAM kesin faz — veri toplanmaya başlar</td><td><span class="badge bd">Başladı</span></td></tr>
+      <tr><td>Mar 2026</td><td>Verifier seç, sözleşme yap</td><td><span class="badge bw">Acil</span></td></tr>
+      <tr><td>Ara 2026</td><td>2026 tam yıl verisi kapat</td><td><span class="badge bg">Hedef</span></td></tr>
+      <tr><td>Eyl 2027</td><td>İlk yıllık CBAM beyannamesi</td><td><span class="badge bg">Son tarih</span></td></tr>
+    </tbody></table></div>
+  </div>
+</div>
+
+<div class="page" id="ph-ver">
+  <div class="g4">
+    <div class="kpi"><div class="kpi-l">Hazırlık Skoru</div><div class="kpi-v" id="vs-score">—</div><div class="kpi-s">/ 100</div></div>
+    <div class="kpi"><div class="kpi-l">Kritik Eksik</div><div class="kpi-v" id="vs-crit" style="color:#b91c1c">—</div><div class="kpi-s">madde</div></div>
+    <div class="kpi"><div class="kpi-l">Tahmini Süre</div><div class="kpi-v" id="vs-time">—</div><div class="kpi-s">hazırlık</div></div>
+    <div class="kpi"><div class="kpi-l">Öncelikli Aksiyon</div><div class="kpi-v" id="vs-act" style="font-size:13px">—</div><div class="kpi-s"> </div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="card-t"><i class="ti ti-list-check"></i> ISO 14064-3 Kontrol Listesi</div><div id="ver-chk"></div></div>
+    <div class="card">
+      <div class="card-t"><i class="ti ti-help"></i> Verifier'ın İlk Soracakları</div>
+      <table class="tbl"><thead><tr><th>Soru</th><th>Durum</th></tr></thead><tbody id="ver-q"></tbody></table>
+      <div class="div"></div>
+      <div class="card-t"><i class="ti ti-brain"></i> HSE Danışman Görüşü (AI)</div>
+      <div style="font-size:11px;color:#6b7280;margin-bottom:.7rem">API anahtarı girildiyse çalışır.</div>
+      <button class="btn-g" id="hse-ai-btn" onclick="getHSEAI()"><i class="ti ti-brain" style="margin-right:5px"></i>Teknik Analiz Al ↗</button>
+      <div class="ai-out" id="hse-ai-out" style="display:none"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div><!-- .w -->
+
+<script>
+const CBAM_PH=[{y:2026,p:.025},{y:2027,p:.10},{y:2028,p:.225},{y:2029,p:.385},{y:2030,p:.485}];
+const DEF_INT=1.8,EF_NG=.00202,EF_DSL=.00268,EF_ELEC=.000458;
+const COMP=[{l:'Almanya',i:.55,c:'#10b981'},{l:'İtalya',i:.68,c:'#34d399'},{l:'Sizin Tesis (Verified)',i:null,c:'#185FA5'},{l:'Sizin Tesis (Default)',i:DEF_INT,c:'#ef4444'},{l:'Çin',i:3.2,c:'#f97316'},{l:'Hindistan',i:4.1,c:'#f59e0b'}];
+let CV={};let procMode='ex';const CHARTS={};
+const gp=id=>{const e=document.getElementById(id);return e?parseFloat(e.value)||0:0;}
+const s=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;}
+const fM=v=>v>=1e6?'€'+(v/1e6).toFixed(2)+'M':v>=1e3?'€'+Math.round(v/1e3)+'K':'€'+Math.round(v);
+const fT=(v,r)=>{const t=v*r;return t>=1e9?'₺'+(t/1e9).toFixed(1)+'Mrd':t>=1e6?'₺'+(t/1e6).toFixed(1)+'M':'₺'+Math.round(t/1e3)+'K';}
+const apiKey=()=>document.getElementById('api-key-input').value.trim();
+
+function recalcAll(){
+  const prod=gp('pp-prod')||10000,int=gp('pp-int')||1.1,ets=gp('pp-ets')||75,rate=gp('pp-try')||38;
+  const price=gp('pp-price')||2200,expPct=gp('pp-exp')||60;
+  const cbam=ph=>prod*int*ets*ph,def=ph=>prod*DEF_INT*ets*ph;
+  const c26=cbam(CBAM_PH[0].p),c30=cbam(CBAM_PH[4].p);
+  const cum=CBAM_PH.reduce((a,ph)=>a+cbam(ph.p),0);
+  const d26=def(CBAM_PH[0].p),dCum=CBAM_PH.reduce((a,ph)=>a+def(ph.p),0);
+  const sav5=dCum-cum;
+  CV={prod,int,ets,rate,price,expPct,c26,c30,cum,d26,dCum,sav5};
+  s('ov-26',fM(c26));s('ov-26t',fT(c26,rate));s('ov-30',fM(c30));s('ov-30t',fT(c30,rate));
+  s('ov-cum',fM(cum));s('ov-cumt',fT(cum,rate));s('ov-pton','€'+(c30/prod).toFixed(1));s('ov-gap',fM(sav5));
+  const revImpact=c30/(prod*(price*expPct/100))*100;
+  const dot=document.querySelector('#rl-fin-dot');const rls=document.getElementById('rl-fin-s');
+  if(dot&&rls){dot.className='rl-dot '+(revImpact>5?'rl-r':revImpact>2?'rl-y':'rl-g');rls.textContent='Ciro etkisi %'+revImpact.toFixed(1);}
+  const ib=document.getElementById('inact-box');
+  if(ib) ib.innerHTML=`<div class="inact-s ia-l"><div class="ia-h">Hazır Değil — Default</div><div class="ia-n">${fM(dCum)}</div><div class="ia-s">5 yıl · ${fT(dCum,rate)}</div></div><div class="inact-s ia-r"><div class="ia-h">Hazır — Verified</div><div class="ia-n">${fM(cum)}</div><div class="ia-s">Tasarruf: ${fM(sav5)}</div></div>`;
+  const ftb=document.getElementById('fin-tbl');
+  if(ftb){let r='';CBAM_PH.forEach(ph=>{const a=cbam(ph.p),d=def(ph.p);r+=`<tr><td>${ph.y}</td><td>${(ph.p*100).toFixed(1)}%</td><td class="dn">${fM(d)}</td><td class="ok">${fM(a)}</td><td class="ok">+${fM(d-a)}</td><td class="mu">${fT(a,rate)}</td></tr>`;});r+=`<tr class="tbl-tr"><td>Toplam</td><td>—</td><td class="dn">${fM(dCum)}</td><td class="ok">${fM(cum)}</td><td class="ok">+${fM(sav5)}</td><td class="mu">${fT(cum,rate)}</td></tr>`;ftb.innerHTML=r;}
+  s('fin-sav',fM(sav5));s('fin-sav-t',fT(sav5,rate));
+  const ri=document.getElementById('rev-impact');
+  if(ri){const rev=prod*(price*expPct/100);ri.innerHTML=`<div class="int-row"><span style="color:#6b7280">AB ihracat cirosu</span><span>${fM(rev)}</span></div><div class="int-row"><span style="color:#6b7280">2030 CBAM</span><span class="dn">${fM(c30)}</span></div><div class="int-row"><span style="color:#6b7280">Ciro etkisi</span><span class="${revImpact>5?'dn':revImpact>2?'wn':'ok'}">${revImpact.toFixed(2)}%</span></div>`;}
+  const stb=document.getElementById('sens-tbl');
+  if(stb) stb.innerHTML=[50,65,75,90,110].map(ep=>{const c=prod*int*ep*CBAM_PH[4].p,ct=CBAM_PH.reduce((a,ph)=>a+prod*int*ep*ph.p,0);const cl=ep>ets?'dn':ep<ets?'ok':'hi';return `<tr><td class="${cl}">€${ep}/t${ep===ets?' ←':''}</td><td class="${cl}">${fM(c)}</td><td class="${cl}">${fM(ct)}</td></tr>`;}).join('');
+  const itb=document.getElementById('int-tbl');
+  if(itb) itb.innerHTML=[[.5,'İyi'],[.8,'Orta-iyi'],[int,'Mevcut'],[1.5,'Orta'],[DEF_INT,'Default']].map(([iv,lb])=>{const c=prod*iv*ets*CBAM_PH[4].p;const isc=Math.abs(iv-int)<.01,isd=Math.abs(iv-DEF_INT)<.01;return `<tr><td class="${isc?'hi':isd?'dn':''}">${iv}${isc?' ←':''}</td><td class="${isc?'hi':isd?'dn':''}">${fM(c)}</td><td class="mu">${lb}</td></tr>`;}).join('');
+  const ci=COMP.map(c=>c.i||int),cc=ci.map(v=>parseFloat((v*CBAM_PH[4].p*ets).toFixed(1))),my30=int*CBAM_PH[4].p*ets;
+  const ctb=document.getElementById('comp-tbl');
+  if(ctb) ctb.innerHTML=COMP.map((c,i)=>{const diff=cc[i]-my30,isMe=c.i===null;return `<tr${isMe?' style="background:#f0f9ff"':''}><td>${c.l}${isMe?' ←':''}</td><td>${ci[i].toFixed(2)}</td><td class="${isMe?'hi':cc[i]>my30?'dn':'ok'}">€${cc[i].toFixed(1)}</td><td class="${diff>0?'ok':diff<0?'dn':''}">${diff===0?'—':(diff>0?'+':'')+diff.toFixed(1)+'€'}</td><td><span class="badge ${diff>0?'bs':diff<0?'bd':'bg'}">${diff>0?'Avantaj':diff<0?'Dezavantaj':'—'}</span></td></tr>`;}).join('');
+  const tgt=.65,gap=((int-tgt)*CBAM_PH[4].p*ets).toFixed(1);
+  s('comp-it','AB rakibiyle ton başına maliyet farkı: €'+gap);s('comp-ib',`Mevcut ${int} tCO₂e/ton yoğunlukla, Alman rakibe (${tgt}) kıyasla ton başına €${gap} ekstra CBAM var.`);
+  const m=(gp('pi-meter')||80)*1e3,v=(gp('pi-verif')||35)*1e3,sys=(gp('pi-sys')||40)*1e3,hr=(gp('pi-hr')||25)*1e3,totalInv=m+sys+(v+hr)*5;
+  const rk=document.getElementById('roi-kpis');
+  if(rk) rk.innerHTML=`<div class="kpi"><div class="kpi-l">Uyum Yatırımı (5 yıl)</div><div class="kpi-v" style="color:#b91c1c">${fM(totalInv)}</div><div class="kpi-s">tek seferlik + yıllık</div></div><div class="kpi"><div class="kpi-l">CBAM Tasarrufu (5 yıl)</div><div class="kpi-v" style="color:#065f46">${fM(sav5)}</div><div class="kpi-s">default vs verified</div></div><div class="kpi"><div class="kpi-l">Net Kazanç</div><div class="kpi-v" style="color:${sav5-totalInv>0?'#065f46':'#b91c1c'}">${fM(sav5-totalInv)}</div><div class="kpi-s">ROI: ${sav5>0?Math.round(sav5/totalInv*100)+'%':'—'}</div></div>`;
+  const rs=document.getElementById('roi-sum');
+  if(rs) rs.innerHTML=`<div style="padding:7px 9px;background:#f3f4f6;border-radius:6px"><div class="int-row"><span style="color:#6b7280">Toplam yatırım</span><span class="dn">${fM(totalInv)}</span></div><div class="int-row"><span style="color:#6b7280">Toplam tasarruf</span><span class="ok">${fM(sav5)}</span></div><div class="int-row"><span style="color:#6b7280">Geri ödeme</span><span>${sav5>0?Math.round(totalInv/sav5*5*10)/10+' yıl':'—'}</span></div></div>`;
+  const ea=document.getElementById('ea-tbl');
+  if(ea) ea.innerHTML=[[' Yenilenebilir elektrik (PPA)',120e3,.15],[' Pres verimliliği',140e3,.08],[' Fırın izolasyonu',35e3,.05],[' Atık ısı geri kazanım',180e3,.10]].map(([a,inv,red])=>{const sv=Math.round(prod*red*ets*CBAM_PH[4].p);return `<tr><td>${a}</td><td class="mu">€${Math.round(inv/1e3)}K</td><td class="ok">−${red} tCO₂e/t</td><td class="ok">€${sv.toLocaleString()}/yıl</td><td class="mu">~${(inv/sv).toFixed(1)} yıl</td></tr>`;}).join('');
+  const dl=document.getElementById('dec-list');
+  if(dl) dl.innerHTML=[{t:'Verifier seçimi ve sözleşme',d:`Default değer uygulanırsa ilk yıl ${fM(d26-c26)} ekstra maliyet oluşur.`,o:'CFO / HSE',dt:'Haz 2025',st:'bd'},{t:'Alt sayaç yatırım onayı',d:`${fM(m)} ile belirsizlik azalır, proses bazında optimizasyon mümkün olur.`,o:'GM / Teknik',dt:'Tem 2025',st:'bd'},{t:'2026 CBAM bütçe karşılığı',d:`2026 tahmini: ${fM(c26)} (${fT(c26,rate)}).`,o:'CFO',dt:'Eyl 2025',st:'bw'},{t:'Yenilenebilir enerji stratejisi',d:`PPA/I-REC ile ~0.15 tCO₂e/ton azaltım mümkün.`,o:'Enerji / Strateji',dt:'Ara 2025',st:'bw'},{t:'AB müşterilerine veri taahhüdü',d:'Verified data sağlayamayan tedarikçi fiyat baskısı ve müşteri kaybı riskiyle karşılaşır.',o:'Satış / GM',dt:'2026 Q1',st:'bw'}].map((d,i)=>`<div class="dec-row"><div class="dec-num">${i+1}</div><div><div class="dec-t">${d.t}</div><div class="dec-s">${d.d}</div><div class="dec-m"><span class="badge ${d.st}">${d.st==='bd'?'Acil':'Planlanacak'}</span><span class="badge bg">${d.o}</span><span class="badge bg">${d.dt}</span></div></div></div>`).join('');
+  drawExecCharts();
+  saveData();
+}
+
+function drawExecCharts(){
+  const {prod,int,ets}=CV;
+  const act=CBAM_PH.map(ph=>Math.round(prod*int*ets*ph.p)),def=CBAM_PH.map(ph=>Math.round(prod*DEF_INT*ets*ph.p));
+  drawChart('ch-traj','line',{labels:CBAM_PH.map(p=>p.y),datasets:[{label:'Default',data:def,borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.06)',tension:.3,borderDash:[4,3],pointRadius:3},{label:'Verified',data:act,borderColor:'#185FA5',backgroundColor:'rgba(24,95,165,.06)',tension:.3,pointRadius:3}]},{scales:{y:{beginAtZero:true,ticks:{font:{size:9},callback:v=>'€'+Math.round(v/1e3)+'K'},grid:{color:'rgba(0,0,0,.05)'}}}});
+  let ac=0,dc=0;const ad=[],dd=[];CBAM_PH.forEach(ph=>{ac+=prod*int*ets*ph.p;dc+=prod*DEF_INT*ets*ph.p;ad.push(Math.round(ac));dd.push(Math.round(dc));});
+  drawChart('ch-cum','bar',{labels:CBAM_PH.map(p=>p.y),datasets:[{label:'Default',data:dd,backgroundColor:'rgba(239,68,68,.65)',borderRadius:3},{label:'Verified',data:ad,backgroundColor:'rgba(24,95,165,.65)',borderRadius:3}]},{scales:{y:{beginAtZero:true,ticks:{font:{size:9},callback:v=>'€'+Math.round(v/1e3)+'K'},grid:{color:'rgba(0,0,0,.05)'}}}});
+  const ci=COMP.map(c=>c.i||int),cc=ci.map(v=>parseFloat((v*CBAM_PH[4].p*ets).toFixed(2))),cls=COMP.map(c=>c.c);
+  drawChart('ch-comp1','bar',{labels:COMP.map(c=>c.l),datasets:[{data:ci,backgroundColor:cls,borderRadius:3}]},{indexAxis:'y',scales:{x:{beginAtZero:true,ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.05)'}}}});
+  drawChart('ch-comp2','bar',{labels:COMP.map(c=>c.l),datasets:[{data:cc,backgroundColor:cls,borderRadius:3}]},{indexAxis:'y',scales:{x:{beginAtZero:true,ticks:{font:{size:9},callback:v=>'€'+v},grid:{color:'rgba(0,0,0,.05)'}}}});
+  const m=(gp('pi-meter')||80)*1e3,v=(gp('pi-verif')||35)*1e3,sys=(gp('pi-sys')||40)*1e3,hr=(gp('pi-hr')||25)*1e3,totalInv=m+sys+(v+hr)*5;
+  drawChart('ch-roi','bar',{labels:['Alt Sayaç','Sistem','Verifier\n5yr','İç Kaynak\n5yr','Toplam\nYatırım','CBAM\nTasarrufu'],datasets:[{data:[m,sys,v*5,hr*5,totalInv,CV.sav5],backgroundColor:['#9ca3af','#9ca3af','#9ca3af','#9ca3af','#ef4444','#10b981'],borderRadius:3}]},{scales:{y:{beginAtZero:true,ticks:{font:{size:9},callback:v=>'€'+Math.round(v/1e3)+'K'},grid:{color:'rgba(0,0,0,.05)'}}}});
+}
+
+function drawChart(id,type,data,extra={}){
+  if(CHARTS[id]) CHARTS[id].destroy();
+  const el=document.getElementById(id);if(!el)return;
+  CHARTS[id]=new Chart(el,{type,data,options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}},...extra}});
+}
+
+function calcHSE(){
+  const ng1=gp('hf-ng1')*EF_NG,ng2=gp('hf-ng2')*EF_NG,ng3=gp('hf-ng3')*EF_NG,ng4=gp('hf-ng4')*EF_NG,dsl=gp('hf-dsl')*EF_DSL;
+  const s1=ng1+ng2+ng3+ng4+dsl;
+  const gef=gp('hf-gef')||EF_ELEC,elec=gp('hf-elec'),ren=Math.min(100,gp('hf-ren'))/100,s2=elec*(1-ren)*gef;
+  const prod=Math.max(1,gp('hf-prod'));
+  s('he-s1',s1.toFixed(2));s('he-s2',s2.toFixed(2));s('he-cbam',(s1+s2).toFixed(2));s('he-int',((s1+s2)/prod).toFixed(3)+' tCO₂e/t');
+  s('hi-s1',(s1/prod).toFixed(3)+' tCO₂e/t');s('hi-s2',(s2/prod).toFixed(3)+' tCO₂e/t');s('hi-tot',((s1+s2)/prod).toFixed(3)+' tCO₂e/t');
+  if(CHARTS.henv) CHARTS.henv.destroy();
+  const ld=[],vd=[],cd=[];const add=(l,v,c)=>{if(v>0){ld.push(l);vd.push(parseFloat(v.toFixed(3)));cd.push(c);}};
+  add('Billet ısıtma (NG)',ng1,'#10b981');add('Yaşlandırma (NG)',ng2,'#34d399');if(ng3>0) add('Eritme (NG)',ng3,'#065f46');if(ng4>0) add('Toz boya (NG)',ng4,'#6ee7b7');add('Forklift (motorin)',dsl,'#9ca3af');add('Elektrik (S2)',s2,'#185FA5');
+  const hec=document.getElementById('ch-henv');if(hec&&vd.length>0){CHARTS.henv=new Chart(hec,{type:'bar',data:{labels:ld,datasets:[{data:vd,backgroundColor:cd,borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{font:{size:9}},grid:{color:'rgba(0,0,0,.05)'}},x:{ticks:{font:{size:9}}}}}});}
+  updateVerif(s1,s2);
+}
+
+function updateVerif(s1,s2){
+  const hasNG=gp('hf-ng1')>0,hasElec=gp('hf-elec')>0,hasProd=gp('hf-prod')>0;
+  const items=[{t:'Organizasyonel sınır belgeli',ok:true,w:10},{t:'PFC dışındaki Scope 1 kaynakları tam',ok:hasNG,w:15},{t:'Elektrik faturası mevcut (12 ay)',ok:hasElec,w:12},{t:'Ekstrüzyon pres alt sayacı var',ok:false,w:12},{t:'Üretim miktarı belgeli',ok:hasProd,w:10},{t:'EF referansları belgelenmiş',ok:true,w:8},{t:'İzleme metodoloji belgesi hazır',ok:false,w:15},{t:'Belirsizlik analizi tamamlandı',ok:false,w:8},{t:'Akredite verifier seçildi',ok:false,w:10}];
+  const score=Math.round(items.filter(i=>i.ok).reduce((a,i)=>a+i.w,0));const crit=items.filter(i=>!i.ok&&i.w>=12).length;
+  s('vs-score',score);s('vs-crit',crit);s('vs-time',score<50?'4–7 ay':score<75?'2–4 ay':'1–2 ay');
+  s('vs-act',!hasNG?'NG sayacı kur':!hasElec?'Elektrik fatura arşivi':!hasProd?'Üretim kaydı':'Metodoloji belgesi');
+  const vc=document.getElementById('ver-chk');if(vc) vc.innerHTML=items.map(i=>`<div class="chk"><div class="chk-dot ${i.ok?'c-ok':'c-no'}">${i.ok?'✓':'✗'}</div><div><div class="chk-t">${i.t}</div></div></div>`).join('');
+  const vq=document.getElementById('ver-q');if(vq) vq.innerHTML=[['İzleme metodoloji belgeniz var mı?',false],['NG fatura/sayaç arşiviniz tam mı?',hasNG],['Location-based EF kullanıyor musunuz?',hasElec],['Pres alt sayacınız var mı?',false],['PFC ölçümü gerekiyor mu?',null]].map(([q,v])=>`<tr><td style="font-size:11px">${q}</td><td>${v===null?'<span class="badge bg">Bu tesis için geçersiz</span>':v?'<span class="badge bs">Hazır</span>':'<span class="badge bd">Eksik</span>'}</td></tr>`).join('');
+}
+
+const PROC={
+  ex:{bc:false,sf:false,units:['Ekstrüzyon hattı','Ekstrüzyon presi','Billet ısıtma fırını','Yaşlandırma fırını','Kompresör']},
+  bc:{bc:true,sf:false,units:['Ekstrüzyon hattı','Billet döküm & eritme fırını','Ekstrüzyon presi','Billet ısıtma fırını','Kompresör']},
+  sf:{bc:false,sf:true,units:['Ekstrüzyon hattı','Toz boya hattı','Eloksal hattı','Ekstrüzyon presi','Billet ısıtma fırını']},
+  full:{bc:true,sf:true,units:['Eritme fırını','Billet döküm','Ekstrüzyon hattı','Toz boya hattı','Eloksal hattı','Kompresör']}
+};
+
+function setProc(mode,btn){
+  procMode=mode;document.querySelectorAll('.proc-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+  const cfg=PROC[mode];const sh=(id,v)=>{const e=document.getElementById(id);if(e)e.style.display=v?'block':'none';};
+  sh('hf-bc',cfg.bc);sh('hf-sf',cfg.sf);
+  const steps=['Hurda/Dış Billet'];if(cfg.bc) steps.push('Eritme 🔥');steps.push('Billet Isıtma 🔥');steps.push('Ekstrüzyon ⚡');steps.push('Yaşlandırma 🔥');if(cfg.sf) steps.push('Yüzey İşlem ⚡🔥');steps.push('Sevkiyat');
+  const pf=document.getElementById('proc-flow');if(pf) pf.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">`+steps.map((st,i)=>`<span style="font-size:11px;padding:3px 8px;border-radius:6px;background:#f3f4f6;color:#1a1a1a">${st}</span>${i<steps.length-1?'<span style="color:#9ca3af">→</span>':''}`).join('')+`</div>`;
+  const pu=document.getElementById('proc-units');if(pu) pu.innerHTML=cfg.units.map(u=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:.5px solid #e5e7eb;font-size:12px"><span style="color:#10b981;font-weight:700">✓</span>${u}</div>`).join('');
+  const scopeRows=[['Billet ısıtma fırını (NG)','S1','Evet','Yüksek'],['Yaşlandırma fırını (NG)','S1','Evet','Orta'],...(cfg.bc?[['Eritme fırını (NG)','S1','Evet','Yüksek']]:[]),(cfg.sf?[['Toz boya fırını (NG)','S1','Evet','Orta']]:[] ),...[['Forklift (motorin)','S1','Evet','Düşük'],['Ekstrüzyon presi (elektrik)','S2','Evet','Çok Yüksek']],...(cfg.sf?[['Eloksal/toz boya (elektrik)','S2','Evet','Yüksek']]:[] ),...[['Kompresör (elektrik)','S2','Evet','Orta'],['Hammadde tedariki','S3','Hayır','Gönüllü']]];
+  const stb=document.getElementById('scope-tbl');if(stb) stb.innerHTML=scopeRows.map(r=>{const sc=r[1]==='S1'?'<span class="s1t">S1</span>':r[1]==='S2'?'<span class="s2t">S2</span>':'<span style="font-size:9px;padding:2px 5px;border-radius:3px;background:#fef3c7;color:#92400e;font-weight:600">S3</span>';const cb=r[2]==='Evet'?'<span class="badge bs">Evet</span>':'<span class="badge bd">Hayır</span>';const pr=r[3]==='Çok Yüksek'?'<span class="badge bd">Çok Yüksek</span>':r[3]==='Yüksek'?'<span class="badge bw">Yüksek</span>':r[3]==='Orta'?'<span class="badge bi">Orta</span>':'<span class="badge bg">Düşük</span>';return `<tr><td>${r[0]}</td><td>${sc}</td><td>${cb}</td><td>${pr}</td></tr>`;}).join('');
+}
+
+function setView(v){
+  document.getElementById('exec-tabs').style.display=v==='exec'?'flex':'none';document.getElementById('hse-tabs').style.display=v==='hse'?'flex':'none';
+  document.getElementById('exec-pages').style.display=v==='exec'?'block':'none';document.getElementById('hse-pages').style.display=v==='hse'?'block':'none';
+  document.getElementById('vs-exec').className='vs-btn'+(v==='exec'?' on-exec':'');document.getElementById('vs-hse').className='vs-btn'+(v==='hse'?' on-hse':'');
+}
+
+function showTab(view,id){
+  const pp=view==='exec'?'pe-':'ph-',tp=view==='exec'?'te-':'th-',cl=view==='exec'?'on-e':'on-h';
+  document.querySelectorAll(`#${view==='exec'?'exec':'hse'}-pages .page`).forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll(`#${view==='exec'?'exec':'hse'}-tabs .tb`).forEach(b=>{b.classList.remove('on-e');b.classList.remove('on-h');});
+  const p=document.getElementById(pp+id);if(p)p.classList.add('on');const t=document.getElementById(tp+id);if(t)t.classList.add(cl);
+  setTimeout(()=>{recalcAll();if(view==='hse')calcHSE();},50);
+}
+
+async function callAPI(prompt,btnId,outId){
+  const key=apiKey();
+  if(!key){const out=document.getElementById(outId);if(out){out.style.display='block';out.textContent='⚠️ Lütfen sayfanın üstündeki sarı alanda Anthropic API anahtarınızı girin.\n\nAnahtar almak için: https://console.anthropic.com/settings/keys';}return;}
+  const btn=document.getElementById(btnId),out=document.getElementById(outId);
+  btn.textContent='Oluşturuluyor...';btn.disabled=true;out.style.display='block';out.textContent='Analiz yapılıyor...';
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    if(!r.ok){const err=await r.json();out.textContent='API Hatası: '+(err.error?.message||r.status);return;}
+    const d=await r.json();out.textContent=d.content?.map(c=>c.text||'').join('')||'Yanıt alınamadı.';
+  }catch(e){out.textContent='Bağlantı hatası: '+e.message;}
+  finally{btn.disabled=false;}
+}
+
+async function getExecAI(){
+  const {prod,int,ets,rate,c26,c30,cum,dCum,sav5}=CV;
+  const btn=document.getElementById('exec-ai-btn');
+  const prompt=`Türk alüminyum ekstrüzyon şirketinin yönetim kuruluna CBAM brifingini Türkçe yaz.\n\nVeriler: Üretim ${prod.toLocaleString()} ton/yıl | Yoğunluk ${int} tCO₂e/ton | ETS €${ets} | 2026: €${Math.round(c26).toLocaleString()} | 2030: €${Math.round(c30).toLocaleString()} | 5yr: €${Math.round(cum).toLocaleString()} verified / €${Math.round(dCum).toLocaleString()} default | Tasarruf: €${Math.round(sav5).toLocaleString()} | EUR/TRY: ${rate}\n\nÖNEMLİ: CBAM hukuki yükümlüsü AB ithalatçısıdır. Ama maliyet ticari olarak Türk üreticiye yansır. Bunu açıkça belirt.\n\nYapı: 1) Durum özeti 2) Finansal risk (TRY dahil) 3) Sorumluluk nüansı 4) 3 karar 5) Öneri. Yönetim dili, max 400 kelime.`;
+  btn.innerHTML='<i class="ti ti-brain" style="margin-right:5px"></i>Rapor Oluştur ↗';
+  await callAPI(prompt,'exec-ai-btn','exec-ai-out');
+  document.getElementById('exec-ai-btn').innerHTML='<i class="ti ti-brain" style="margin-right:5px"></i>Rapor Oluştur ↗';
+}
+
+async function getHSEAI(){
+  const s1=parseFloat(document.getElementById('he-s1')?.textContent)||0,s2=parseFloat(document.getElementById('he-s2')?.textContent)||0;
+  const prompt=`Trakya'da ikincil alüminyum ekstrüzyon tesisi için HSE danışmanı olarak teknik analiz yap.\n\nTesis tipi: ${procMode}\nS1: ${s1.toFixed(2)} tCO₂e/yıl | S2: ${s2.toFixed(2)} tCO₂e/yıl\nPFC: Bu tesis için geçersiz (ekstrüzyon, elektroliz yok)\nAlt sayaç: Yok | Verifier: Seçilmedi | Metodoloji belgesi: Yok\n\n3 kritik teknik aksiyon:\n1) Verifier ilk hangi eksikleri bulur?\n2) Alt sayaç kurulumunun somut etkisi?\n3) 2026 beyanı için minimum yol haritası?\n\nPFC/CF₄/C₂F₆'dan bahsetme. Türkçe, teknik, kısa.`;
+  await callAPI(prompt,'hse-ai-btn','hse-ai-out');
+  document.getElementById('hse-ai-btn').innerHTML='<i class="ti ti-brain" style="margin-right:5px"></i>Teknik Analiz Al ↗';
+}
+
+setProc('ex',document.querySelector('.proc-btn.on'));
+recalcAll();
+
+// ── LOCAL STORAGE & EXPORT/IMPORT ──
+const SAVE_KEYS=['pp-prod','pp-int','pp-ets','pp-try','pp-price','pp-exp','pi-meter','pi-verif','pi-sys','pi-hr','hf-ng1','hf-ng2','hf-ng3','hf-ng4','hf-dsl','hf-elec','hf-gef','hf-ren','hf-prod','api-key-input'];
+
+function saveData(){
+  try{
+    const data={};
+    SAVE_KEYS.forEach(k=>{const e=document.getElementById(k);if(e)data[k]=e.value;});
+    data._proc=procMode;
+    localStorage.setItem('cbam_v1',JSON.stringify(data));
+    const el=document.getElementById('last-upd');
+    if(el)el.textContent='Kaydedildi: '+new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+  }catch(ex){console.log('save err',ex);}
+}
+
+function loadData(){
+  try{
+    const raw=localStorage.getItem('cbam_v1');
+    if(!raw){console.log('no saved data');return;}
+    const data=JSON.parse(raw);
+    SAVE_KEYS.forEach(k=>{const e=document.getElementById(k);if(e&&data[k]!==undefined&&data[k]!=='')e.value=data[k];});
+    if(data._proc){const btn=document.querySelector('.proc-btn[onclick*="'+data._proc+'"]');if(btn){setProc(data._proc,btn);}}
+    recalcAll();calcHSE();
+    const el=document.getElementById('last-upd');
+    if(el)el.textContent='Yüklendi: '+new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+    console.log('data loaded ok');
+  }catch(ex){console.log('load err',ex);}
+}
+
+function clearData(){
+  if(confirm('Tüm kayıtlı veriler silinecek. Emin misiniz?')){localStorage.removeItem('cbam_v1');location.reload();}
+}
+
+function exportData(){
+  try{
+    const data={};
+    SAVE_KEYS.filter(k=>k!=='api-key-input').forEach(k=>{const e=document.getElementById(k);if(e)data[k]=e.value;});
+    data._proc=procMode;data._exported=new Date().toISOString();
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download='cbam_veri_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+  }catch(ex){alert('Dışa aktarma hatası: '+ex.message);}
+}
+
+function importData(){
+  const inp=document.createElement('input');inp.type='file';inp.accept='.json';
+  inp.onchange=e=>{
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        SAVE_KEYS.filter(k=>k!=='api-key-input').forEach(k=>{const el=document.getElementById(k);if(el&&data[k]!==undefined)el.value=data[k];});
+        if(data._proc){const btn=document.querySelector('.proc-btn[onclick*="'+data._proc+'"]');if(btn)setProc(data._proc,btn);}
+        recalcAll();calcHSE();saveData();
+        alert('Veri başarıyla yüklendi.');
+      }catch(ex){alert('Dosya okunamadı: '+ex.message);}
+    };reader.readAsText(e.target.files[0]);
+  };inp.click();
+}
+
+window.addEventListener('DOMContentLoaded',()=>{setTimeout(loadData,100);});
+
+</script>
+</body>
+</html>
