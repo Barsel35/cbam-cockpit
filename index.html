@@ -604,9 +604,6 @@ async function getHSEAI(){
   document.getElementById('hse-ai-btn').innerHTML='<i class="ti ti-brain" style="margin-right:5px"></i>Teknik Analiz Al ↗';
 }
 
-setProc('ex',document.querySelector('.proc-btn.on'));
-recalcAll();
-
 // ── MULTI-FIRM LOCAL STORAGE ──
 const SAVE_KEYS=['pp-prod','pp-int','pp-ets','pp-try','pp-price','pp-exp','pi-meter','pi-verif','pi-sys','pi-hr','hf-ng1','hf-ng2','hf-ng3','hf-ng4','hf-dsl','hf-elec','hf-gef','hf-ren','hf-prod','api-key-input'];
 
@@ -767,18 +764,20 @@ function importData(){
         SAVE_KEYS.filter(k=>k!=='api-key-input').forEach(k=>{const el=document.getElementById(k);if(el&&data[k]!==undefined)el.value=data[k];});
         if(data._proc){const btn=document.querySelector('.proc-btn[onclick*="'+data._proc+'"]');if(btn)setProc(data._proc,btn);}
         recalcAll();calcHSE();saveData();
-        alert('Veri başarıyla yüklendi'+(data._firmName?' ('+data._firmName+')':'')+'.'');
+        alert('Veri başarıyla yüklendi.');
       }catch(ex){alert('Dosya okunamadı: '+ex.message);}
     };reader.readAsText(e.target.files[0]);
   };inp.click();
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
-  setTimeout(()=>{
+  try{
+    setProc('ex', document.querySelector('.proc-btn.on'));
     initFirms();
     loadData();
-    setTimeout(()=>{recalcAll();calcHSE();},150);
-  },200);
+    recalcAll();
+    calcHSE();
+  }catch(e){console.error('Init error:',e);}
 });
 
 </script>
