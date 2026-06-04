@@ -766,9 +766,13 @@ function saveData(){
     const fid=getActiveFirmId();
     if(!fid) return;
     const st={_proc:procMode,_ts:Date.now()};
-    document.querySelectorAll('input[id],select[id]').forEach(el=>{
-      if(el.id&&el.type!=='file') st[el.id]=el.value;
-    });
+    // Explicitly save all known field IDs (display:none fields not found by querySelectorAll)
+    const ALL_IDS=['pp-prod','pp-int','pp-ets','pp-try','pp-price','pp-exp',
+      'pi-meter','pi-verif','pi-sys','pi-hr',
+      'hf-ng1','hf-ng2','hf-ng3','hf-ng4','hf-dsl',
+      'hf-elec','hf-gef','hf-ren','hf-prod',
+      'firm-select'];
+    ALL_IDS.forEach(id=>{const el=document.getElementById(id);if(el)st[id]=el.value;});
     localStorage.setItem('cbam3_'+fid,JSON.stringify(st));
     const el=document.getElementById('last-upd');
     const sel=document.getElementById('firm-select');
