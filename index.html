@@ -200,6 +200,18 @@ select{border:0.5px solid var(--color-border-secondary);border-radius:var(--bord
   <span style="font-size:10px;color:#6b7280;margin-left:4px">Her firma ayrı kaydedilir · JSON ile taşınabilir</span>
 </div>
 
+<div id="debug-bar" style="display:flex;align-items:center;gap:10px;padding:.4rem 1.1rem;background:#f0f9ff;border-bottom:.5px solid #bae6fd;font-size:11px;flex-wrap:wrap">
+  <span style="font-weight:600;color:#0369a1">DEBUG:</span>
+  <span id="db-ls" style="color:#6b7280">localStorage: kontrol ediliyor...</span>
+  <span>|</span>
+  <span id="db-firm" style="color:#6b7280">Firma ID: —</span>
+  <span>|</span>
+  <span id="db-saved" style="color:#6b7280">Kayıtlı veri: —</span>
+  <span>|</span>
+  <button onclick="debugSave()" style="padding:2px 8px;font-size:10px;background:#0369a1;color:#fff;border:none;border-radius:4px;cursor:pointer">Manuel Kaydet</button>
+  <button onclick="debugLoad()" style="padding:2px 8px;font-size:10px;background:#059669;color:#fff;border:none;border-radius:4px;cursor:pointer">Veriyi Gör</button>
+  <button onclick="document.getElementById('debug-bar').style.display='none'" style="padding:2px 6px;font-size:10px;background:#6b7280;color:#fff;border:none;border-radius:4px;cursor:pointer">Gizle</button>
+</div>
 <!-- VIEW SWITCH -->
 <div class="vs-wrap">
   <button class="vs-btn on-exec" id="vs-exec" onclick="setView('exec')">
@@ -715,6 +727,7 @@ function saveData(){
     const sel=document.getElementById('firm-select');
     const firmName=sel&&sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text:'';
     if(el){el.textContent='✓ '+(firmName?firmName+' · ':'')+new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});el.style.color='#059669';}
+    updateDebugBar();
   }catch(ex){console.log('save err',ex);}
 }
 
@@ -770,6 +783,45 @@ function importData(){
   };inp.click();
 }
 
+
+function updateDebugBar(){
+  try{
+    // Test localStorage
+    localStorage.setItem('_test','1');
+    const t=localStorage.getItem('_test');
+    localStorage.removeItem('_test');
+    const lsEl=document.getElementById('db-ls');
+    if(lsEl) lsEl.textContent='localStorage: '+(t==='1'?'✓ Çalışıyor':'✗ Çalışmıyor');
+    if(lsEl) lsEl.style.color=t==='1'?'#059669':'#dc2626';
+    
+    const firmId=getActiveFirmId();
+    const fEl=document.getElementById('db-firm');
+    if(fEl) fEl.textContent='Firma ID: '+(firmId||'YOK');
+    if(fEl) fEl.style.color=firmId?'#059669':'#dc2626';
+    
+    const savedData=firmId?localStorage.getItem('cbam_data_'+firmId):null;
+    const sEl=document.getElementById('db-saved');
+    if(sEl) sEl.textContent='Kayıtlı: '+(savedData?'✓ Var ('+Object.keys(JSON.parse(savedData)).length+' alan)':'✗ Yok');
+    if(sEl) sEl.style.color=savedData?'#059669':'#dc2626';
+  }catch(e){console.error('debug err',e);}
+}
+
+function debugSave(){
+  saveData();
+  updateDebugBar();
+  alert('Manuel kayıt yapıldı. Debug bilgisi güncellendi.');
+}
+
+function debugLoad(){
+  const firmId=getActiveFirmId();
+  if(!firmId){alert('Firma ID bulunamadı!');return;}
+  const data=localStorage.getItem('cbam_data_'+firmId);
+  if(!data){alert('Bu firma için kayıtlı veri yok!\nFirma ID: '+firmId);return;}
+  const parsed=JSON.parse(data);
+  const preview=Object.entries(parsed).filter(([k])=>!k.startsWith('_')).slice(0,5).map(([k,v])=>k+': '+v).join('\n');
+  alert('Kayıtlı veri (ilk 5 alan):\n'+preview+'\n\nToplam: '+Object.keys(parsed).length+' alan');
+}
+
 window.addEventListener('DOMContentLoaded',()=>{
   try{
     setProc('ex', document.querySelector('.proc-btn.on'));
@@ -777,6 +829,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     loadData();
     recalcAll();
     calcHSE();
+    updateDebugBar();
     // Save on every input change directly
     document.querySelectorAll('input[type=number], input[type=password]').forEach(inp=>{
       inp.addEventListener('change', saveData);
