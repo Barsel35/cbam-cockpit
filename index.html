@@ -713,8 +713,8 @@ function saveData(){
     localStorage.setItem('cbam_data_'+activeId,JSON.stringify(data));
     const el=document.getElementById('last-upd');
     const sel=document.getElementById('firm-select');
-    const firmName=sel?sel.options[sel.selectedIndex]?.text:'';
-    if(el) el.textContent=(firmName?firmName+' · ':'')+new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+    const firmName=sel&&sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text:'';
+    if(el){el.textContent='✓ '+(firmName?firmName+' · ':'')+new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});el.style.color='#059669';}
   }catch(ex){console.log('save err',ex);}
 }
 
@@ -726,7 +726,7 @@ function loadData(){
     if(!raw){console.log('no data for firm',activeId);return;}
     const data=JSON.parse(raw);
     SAVE_KEYS.forEach(k=>{const e=document.getElementById(k);if(e&&data[k]!==undefined&&data[k]!=='')e.value=data[k];});
-    if(data._proc){const btn=document.querySelector('.proc-btn[onclick*="'+data._proc+'"]');if(btn)setProc(data._proc,btn);}
+    if(data._proc){const btn=document.querySelector('.proc-btn[onclick*="'+data._proc+'"]');if(btn){procMode=data._proc;document.querySelectorAll('.proc-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}}
     console.log('data loaded for firm',activeId);
   }catch(ex){console.log('load err',ex);}
 }
@@ -777,6 +777,12 @@ window.addEventListener('DOMContentLoaded',()=>{
     loadData();
     recalcAll();
     calcHSE();
+    // Save on every input change directly
+    document.querySelectorAll('input[type=number], input[type=password]').forEach(inp=>{
+      inp.addEventListener('change', saveData);
+    });
+    // Save when page closes
+    window.addEventListener('beforeunload', saveData);
   }catch(e){console.error('Init error:',e);}
 });
 
