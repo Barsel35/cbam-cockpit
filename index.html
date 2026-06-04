@@ -717,6 +717,7 @@ function clearInputs(){
 
 function saveData(){
   try{
+    if(window._isLoading) return; // Don't overwrite during page load
     const activeId=getActiveFirmId();
     if(!activeId) return;
     const data={};
@@ -826,13 +827,22 @@ window.addEventListener('DOMContentLoaded',()=>{
   try{
     setProc('ex', document.querySelector('.proc-btn.on'));
     initFirms();
+    
+    // Load data FIRST - populate all inputs
     loadData();
+    
+    // Then calculate WITHOUT saving (flag prevents overwrite)
+    window._isLoading = true;
     recalcAll();
     calcHSE();
+    window._isLoading = false;
+    
     updateDebugBar();
-    // Save on every input change directly
+    
+    // Save on every input change directly (only after load is complete)
     document.querySelectorAll('input[type=number], input[type=password]').forEach(inp=>{
       inp.addEventListener('change', saveData);
+      inp.addEventListener('input', saveData);
     });
     // Save when page closes
     window.addEventListener('beforeunload', saveData);
