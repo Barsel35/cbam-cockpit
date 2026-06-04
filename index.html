@@ -41,7 +41,7 @@ select{border:0.5px solid var(--color-border-secondary);border-radius:var(--bord
 .pi span{font-size:10px;color:var(--color-text-secondary);white-space:nowrap}
 .pi input{padding:3px 6px;font-size:11px}
 /* API key row */
-.api-row{display:flex;align-items:center;gap:8px;padding:.45rem 1.1rem;background:#fef9ec;border-bottom:.5px solid #fde68a;flex-wrap:wrap}
+.api-row{display:flex;align-items:center;gap:6px;padding:.4rem 1.1rem;background:#f9fafb;border-bottom:.5px solid #e5e7eb;flex-wrap:wrap}
 .api-row span{font-size:11px;color:#92400e}
 .api-row input{padding:4px 8px;font-size:11px;width:280px;border-color:#fcd34d}
 .api-row a{font-size:11px;color:#1e40af;text-decoration:none}
@@ -175,7 +175,11 @@ select{border:0.5px solid var(--color-border-secondary);border-radius:var(--bord
     <i class="ti ti-leaf" style="font-size:16px;color:#10b981"></i>
     <span class="brand-name">Carbon Cockpit</span>
     <span class="badge bi">Demo v1</span>
-    <span class="badge bg">Alüminyum Ekstrüzyon · Trakya</span>
+    <div style="display:flex;align-items:center;gap:5px;margin-left:4px">
+      <select id="firm-select" onchange="switchFirm(this.value)" style="padding:3px 8px;font-size:12px;font-weight:500;border:0.5px solid #d1d5db;border-radius:6px;background:#f0f9ff;color:#1e40af;cursor:pointer;max-width:180px"></select>
+      <button onclick="addFirm()" title="Yeni firma ekle" style="width:24px;height:24px;border-radius:50%;border:0.5px solid #10b981;background:#d1fae5;color:#065f46;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0">+</button>
+      <button onclick="deleteFirm()" title="Firmayı sil" style="width:24px;height:24px;border-radius:50%;border:0.5px solid #fca5a5;background:#fee2e2;color:#b91c1c;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0">×</button>
+    </div>
   </div>
   <div class="params">
     <div class="pi"><span>Üretim:</span><input id="pp-prod" type="number" value="10000" oninput="recalcAll()" style="width:75px"><span>ton/yıl</span></div>
@@ -188,15 +192,12 @@ select{border:0.5px solid var(--color-border-secondary);border-radius:var(--bord
 
 <!-- API KEY ROW -->
 <div class="api-row">
-  <i class="ti ti-key" style="font-size:14px;color:#92400e"></i>
-  <span>Anthropic API Anahtarı (AI butonları için gerekli):</span>
-  <input type="password" id="api-key-input" placeholder="sk-ant-api03-..." style="width:280px;padding:4px 8px;font-size:11px">
-  <a href="https://console.anthropic.com/settings/keys" target="_blank">→ Anahtar al</a>
-  &nbsp;
   <button onclick="exportData()" style="padding:3px 10px;font-size:11px;background:transparent;border:0.5px solid #059669;border-radius:4px;color:#065f46;cursor:pointer">⬇ Veriyi Dışa Aktar</button>
   <button onclick="importData()" style="padding:3px 10px;font-size:11px;background:transparent;border:0.5px solid #1d4ed8;border-radius:4px;color:#1e40af;cursor:pointer">⬆ Veriyi İçe Aktar</button>
-  <button onclick="clearData()" style="padding:3px 10px;font-size:11px;background:transparent;border:0.5px solid #d97706;border-radius:4px;color:#92400e;cursor:pointer">Sıfırla</button>
-  <span style="font-size:10px;color:#92400e;margin-left:6px">Tarayıcıya otomatik kaydedilir · JSON ile taşınabilir</span>
+  <button onclick="renameFirm()" style="padding:3px 10px;font-size:11px;background:transparent;border:0.5px solid #6b7280;border-radius:4px;color:#374151;cursor:pointer">Firma Adını Değiştir</button>
+  <button onclick="clearData()" style="padding:3px 10px;font-size:11px;background:transparent;border:0.5px solid #d97706;border-radius:4px;color:#92400e;cursor:pointer">Veriyi Sıfırla</button>
+  <input type="hidden" id="api-key-input" value="">
+  <span style="font-size:10px;color:#6b7280;margin-left:4px">Her firma ayrı kaydedilir · JSON ile taşınabilir</span>
 </div>
 
 <!-- VIEW SWITCH -->
@@ -577,12 +578,10 @@ function showTab(view,id){
 }
 
 async function callAPI(prompt,btnId,outId){
-  const key=apiKey();
-  if(!key){const out=document.getElementById(outId);if(out){out.style.display='block';out.textContent='⚠️ Lütfen sayfanın üstündeki sarı alanda Anthropic API anahtarınızı girin.\n\nAnahtar almak için: https://console.anthropic.com/settings/keys';}return;}
   const btn=document.getElementById(btnId),out=document.getElementById(outId);
   btn.textContent='Oluşturuluyor...';btn.disabled=true;out.style.display='block';out.textContent='Analiz yapılıyor...';
   try{
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
     if(!r.ok){const err=await r.json();out.textContent='API Hatası: '+(err.error?.message||r.status);return;}
     const d=await r.json();out.textContent=d.content?.map(c=>c.text||'').join('')||'Yanıt alınamadı.';
   }catch(e){out.textContent='Bağlantı hatası: '+e.message;}
@@ -608,46 +607,153 @@ async function getHSEAI(){
 setProc('ex',document.querySelector('.proc-btn.on'));
 recalcAll();
 
-// ── LOCAL STORAGE & EXPORT/IMPORT ──
+// ── MULTI-FIRM LOCAL STORAGE ──
 const SAVE_KEYS=['pp-prod','pp-int','pp-ets','pp-try','pp-price','pp-exp','pi-meter','pi-verif','pi-sys','pi-hr','hf-ng1','hf-ng2','hf-ng3','hf-ng4','hf-dsl','hf-elec','hf-gef','hf-ren','hf-prod','api-key-input'];
+
+function getFirms(){try{return JSON.parse(localStorage.getItem('cbam_firms')||'[]');}catch(e){return[];}}
+function setFirms(f){localStorage.setItem('cbam_firms',JSON.stringify(f));}
+function getActiveFirmId(){return localStorage.getItem('cbam_active_firm')||'';}
+function setActiveFirmId(id){localStorage.setItem('cbam_active_firm',id);}
+
+function initFirms(){
+  let firms=getFirms();
+  if(firms.length===0){
+    const id='firm_'+Date.now();
+    firms=[{id,name:'Firma 1'}];
+    setFirms(firms);
+    setActiveFirmId(id);
+  }
+  if(!getActiveFirmId()) setActiveFirmId(firms[0].id);
+  renderFirmSelect();
+}
+
+function renderFirmSelect(){
+  const firms=getFirms();
+  const activeId=getActiveFirmId();
+  const sel=document.getElementById('firm-select');
+  if(!sel) return;
+  sel.innerHTML=firms.map(f=>`<option value="${f.id}"${f.id===activeId?' selected':''}>${f.name}</option>`).join('');
+}
+
+function addFirm(){
+  const name=prompt('Yeni firma adı:');
+  if(!name||!name.trim()) return;
+  const firms=getFirms();
+  const id='firm_'+Date.now();
+  firms.push({id,name:name.trim()});
+  setFirms(firms);
+  saveData();
+  setActiveFirmId(id);
+  renderFirmSelect();
+  clearInputs();
+  recalcAll();calcHSE();
+}
+
+function switchFirm(id){
+  saveData();
+  setActiveFirmId(id);
+  clearInputs();
+  loadData();
+  recalcAll();calcHSE();
+}
+
+function deleteFirm(){
+  const firms=getFirms();
+  if(firms.length<=1){alert('En az bir firma olmalı.');return;}
+  const activeId=getActiveFirmId();
+  const firm=firms.find(f=>f.id===activeId);
+  if(!confirm(`"${firm?.name}" firması silinecek. Emin misiniz?`)) return;
+  const newFirms=firms.filter(f=>f.id!==activeId);
+  setFirms(newFirms);
+  localStorage.removeItem('cbam_data_'+activeId);
+  setActiveFirmId(newFirms[0].id);
+  renderFirmSelect();
+  clearInputs();
+  loadData();
+  recalcAll();calcHSE();
+}
+
+function renameFirm(){
+  const firms=getFirms();
+  const activeId=getActiveFirmId();
+  const firm=firms.find(f=>f.id===activeId);
+  const name=prompt('Firma adını değiştir:',firm?.name||'');
+  if(!name||!name.trim()) return;
+  firm.name=name.trim();
+  setFirms(firms);
+  renderFirmSelect();
+}
+
+function clearInputs(){
+  SAVE_KEYS.filter(k=>k!=='api-key-input').forEach(k=>{
+    const e=document.getElementById(k);
+    if(e){
+      if(k==='hf-gef') e.value='0.458';
+      else if(['pp-prod'].includes(k)) e.value='10000';
+      else if(k==='pp-int') e.value='1.1';
+      else if(k==='pp-ets') e.value='75';
+      else if(k==='pp-try') e.value='38';
+      else if(k==='pp-price') e.value='2200';
+      else if(k==='pp-exp') e.value='60';
+      else if(k==='pi-meter') e.value='80';
+      else if(k==='pi-verif') e.value='35';
+      else if(k==='pi-sys') e.value='40';
+      else if(k==='pi-hr') e.value='25';
+      else e.value='0';
+    }
+  });
+  const btn=document.querySelector('.proc-btn');
+  if(btn) setProc('ex',document.querySelector('.proc-btn'));
+}
 
 function saveData(){
   try{
+    const activeId=getActiveFirmId();
+    if(!activeId) return;
     const data={};
     SAVE_KEYS.forEach(k=>{const e=document.getElementById(k);if(e)data[k]=e.value;});
     data._proc=procMode;
-    localStorage.setItem('cbam_v1',JSON.stringify(data));
+    localStorage.setItem('cbam_data_'+activeId,JSON.stringify(data));
     const el=document.getElementById('last-upd');
-    if(el)el.textContent='Kaydedildi: '+new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
+    const sel=document.getElementById('firm-select');
+    const firmName=sel?sel.options[sel.selectedIndex]?.text:'';
+    if(el) el.textContent=(firmName?firmName+' · ':'')+new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
   }catch(ex){console.log('save err',ex);}
 }
 
 function loadData(){
   try{
-    const raw=localStorage.getItem('cbam_v1');
-    if(!raw){console.log('no saved data');return;}
+    const activeId=getActiveFirmId();
+    if(!activeId) return;
+    const raw=localStorage.getItem('cbam_data_'+activeId);
+    if(!raw){console.log('no data for firm',activeId);return;}
     const data=JSON.parse(raw);
     SAVE_KEYS.forEach(k=>{const e=document.getElementById(k);if(e&&data[k]!==undefined&&data[k]!=='')e.value=data[k];});
-    if(data._proc){const btn=document.querySelector('.proc-btn[onclick*="'+data._proc+'"]');if(btn){setProc(data._proc,btn);}}
-    recalcAll();calcHSE();
-    const el=document.getElementById('last-upd');
-    if(el)el.textContent='Yüklendi: '+new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
-    console.log('data loaded ok');
+    if(data._proc){const btn=document.querySelector('.proc-btn[onclick*="'+data._proc+'"]');if(btn)setProc(data._proc,btn);}
+    console.log('data loaded for firm',activeId);
   }catch(ex){console.log('load err',ex);}
 }
 
 function clearData(){
-  if(confirm('Tüm kayıtlı veriler silinecek. Emin misiniz?')){localStorage.removeItem('cbam_v1');location.reload();}
+  if(confirm('Bu firmanın tüm verileri silinecek. Emin misiniz?')){
+    const activeId=getActiveFirmId();
+    localStorage.removeItem('cbam_data_'+activeId);
+    clearInputs();
+    recalcAll();calcHSE();
+  }
 }
 
 function exportData(){
   try{
+    const activeId=getActiveFirmId();
+    const firms=getFirms();
+    const firm=firms.find(f=>f.id===activeId);
     const data={};
     SAVE_KEYS.filter(k=>k!=='api-key-input').forEach(k=>{const e=document.getElementById(k);if(e)data[k]=e.value;});
-    data._proc=procMode;data._exported=new Date().toISOString();
+    data._proc=procMode;data._exported=new Date().toISOString();data._firmName=firm?.name||'Firma';
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
     const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-    a.download='cbam_veri_'+new Date().toISOString().slice(0,10)+'.json';a.click();
+    a.download='cbam_'+(firm?.name||'firma').replace(/\s+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.json';a.click();
   }catch(ex){alert('Dışa aktarma hatası: '+ex.message);}
 }
 
@@ -661,7 +767,7 @@ function importData(){
         SAVE_KEYS.filter(k=>k!=='api-key-input').forEach(k=>{const el=document.getElementById(k);if(el&&data[k]!==undefined)el.value=data[k];});
         if(data._proc){const btn=document.querySelector('.proc-btn[onclick*="'+data._proc+'"]');if(btn)setProc(data._proc,btn);}
         recalcAll();calcHSE();saveData();
-        alert('Veri başarıyla yüklendi.');
+        alert('Veri başarıyla yüklendi'+(data._firmName?' ('+data._firmName+')':'')+'.'');
       }catch(ex){alert('Dosya okunamadı: '+ex.message);}
     };reader.readAsText(e.target.files[0]);
   };inp.click();
@@ -669,6 +775,7 @@ function importData(){
 
 window.addEventListener('DOMContentLoaded',()=>{
   setTimeout(()=>{
+    initFirms();
     loadData();
     setTimeout(()=>{recalcAll();calcHSE();},150);
   },200);
