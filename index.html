@@ -616,241 +616,159 @@ async function getHSEAI(){
   document.getElementById('hse-ai-btn').innerHTML='<i class="ti ti-brain" style="margin-right:5px"></i>Teknik Analiz Al ↗';
 }
 
-// ── MULTI-FIRM LOCAL STORAGE ──
-const SAVE_KEYS=['pp-prod','pp-int','pp-ets','pp-try','pp-price','pp-exp','pi-meter','pi-verif','pi-sys','pi-hr','hf-ng1','hf-ng2','hf-ng3','hf-ng4','hf-dsl','hf-elec','hf-gef','hf-ren','hf-prod','api-key-input'];
+// ── STORAGE ──
+const _FIRMS_KEY='cbam_firms';
+const _ACTIVE_KEY='cbam_active';
+const _DATA_PREFIX='cbam_data_';
+const _FIELDS=['pp-prod','pp-int','pp-ets','pp-try','pp-price','pp-exp',
+  'pi-meter','pi-verif','pi-sys','pi-hr',
+  'hf-ng1','hf-ng2','hf-ng3','hf-ng4','hf-dsl',
+  'hf-elec','hf-gef','hf-ren','hf-prod'];
 
-function getFirms(){try{return JSON.parse(localStorage.getItem('cbam_firms')||'[]');}catch(e){return[];}}
-function setFirms(f){localStorage.setItem('cbam_firms',JSON.stringify(f));}
-function getActiveFirmId(){return localStorage.getItem('cbam_active_firm')||'';}
-function setActiveFirmId(id){localStorage.setItem('cbam_active_firm',id);}
+function getFirms(){try{return JSON.parse(localStorage.getItem(_FIRMS_KEY)||'[]');}catch(e){return[];}}
+function saveFirms(f){localStorage.setItem(_FIRMS_KEY,JSON.stringify(f));}
+function getActiveId(){return localStorage.getItem(_ACTIVE_KEY)||'';}
+function setActiveId(id){localStorage.setItem(_ACTIVE_KEY,id);}
 
 function initFirms(){
   let firms=getFirms();
-  if(firms.length===0){
-    const id='firm_'+Date.now();
+  if(!firms.length){
+    const id='f'+Date.now();
     firms=[{id,name:'Firma 1'}];
-    setFirms(firms);
-    setActiveFirmId(id);
+    saveFirms(firms);
+    setActiveId(id);
   }
-  if(!getActiveFirmId()) setActiveFirmId(firms[0].id);
+  if(!getActiveId()) setActiveId(firms[0].id);
   renderFirmSelect();
 }
 
 function renderFirmSelect(){
   const firms=getFirms();
-  const activeId=getActiveFirmId();
+  const aid=getActiveId();
   const sel=document.getElementById('firm-select');
   if(!sel) return;
-  sel.innerHTML=firms.map(f=>`<option value="${f.id}"${f.id===activeId?' selected':''}>${f.name}</option>`).join('');
+  sel.innerHTML=firms.map(f=>`<option value="${f.id}"${f.id===aid?' selected':''}>${f.name}</option>`).join('');
 }
 
-function addFirm(){
-  const name=prompt('Yeni firma adı:');
-  if(!name||!name.trim()) return;
-  const firms=getFirms();
-  const id='firm_'+Date.now();
-  firms.push({id,name:name.trim()});
-  setFirms(firms);
-  saveData();
-  setActiveFirmId(id);
-  renderFirmSelect();
-  clearInputs();
-  recalcAll();calcHSE();
+function doSave(){
+  if(window._loading) return;
+  const aid=getActiveId();
+  if(!aid) return;
+  const st={_proc:procMode,_ts:Date.now()};
+  _FIELDS.forEach(id=>{const el=document.getElementById(id);if(el) st[id]=el.value;});
+  localStorage.setItem(_DATA_PREFIX+aid, JSON.stringify(st));
+  updateSaveStatus();
+  updateDebugBar();
 }
 
-function switchFirm(id){
-  saveData();
-  setActiveFirmId(id);
-  clearInputs();
-  loadData();
-  recalcAll();calcHSE();
-}
-
-function deleteFirm(){
-  const firms=getFirms();
-  if(firms.length<=1){alert('En az bir firma olmalı.');return;}
-  const activeId=getActiveFirmId();
-  const firm=firms.find(f=>f.id===activeId);
-  if(!confirm(`"${firm?.name}" firması silinecek. Emin misiniz?`)) return;
-  const newFirms=firms.filter(f=>f.id!==activeId);
-  setFirms(newFirms);
-  localStorage.removeItem('cbam_data_'+activeId);
-  setActiveFirmId(newFirms[0].id);
-  renderFirmSelect();
-  clearInputs();
-  loadData();
-  recalcAll();calcHSE();
-}
-
-function renameFirm(){
-  const firms=getFirms();
-  const activeId=getActiveFirmId();
-  const firm=firms.find(f=>f.id===activeId);
-  const name=prompt('Firma adını değiştir:',firm?.name||'');
-  if(!name||!name.trim()) return;
-  firm.name=name.trim();
-  setFirms(firms);
-  renderFirmSelect();
-}
-
-function clearInputs(){
-  SAVE_KEYS.filter(k=>k!=='api-key-input').forEach(k=>{
-    const e=document.getElementById(k);
-    if(e){
-      if(k==='hf-gef') e.value='0.458';
-      else if(['pp-prod'].includes(k)) e.value='10000';
-      else if(k==='pp-int') e.value='1.1';
-      else if(k==='pp-ets') e.value='75';
-      else if(k==='pp-try') e.value='38';
-      else if(k==='pp-price') e.value='2200';
-      else if(k==='pp-exp') e.value='60';
-      else if(k==='pi-meter') e.value='80';
-      else if(k==='pi-verif') e.value='35';
-      else if(k==='pi-sys') e.value='40';
-      else if(k==='pi-hr') e.value='25';
-      else e.value='0';
-    }
+function doLoad(){
+  const aid=getActiveId();
+  if(!aid) return;
+  const raw=localStorage.getItem(_DATA_PREFIX+aid);
+  if(!raw) return;
+  const st=JSON.parse(raw);
+  _FIELDS.forEach(id=>{
+    const el=document.getElementById(id);
+    if(el && st[id]!==undefined) el.value=st[id];
   });
-  const btn=document.querySelector('.proc-btn');
-  if(btn) setProc('ex',document.querySelector('.proc-btn'));
-}
-
-
-
-
-
-function clearData(){
-  if(confirm('Bu firmanın tüm verileri silinecek. Emin misiniz?')){
-    const activeId=getActiveFirmId();
-    localStorage.removeItem('cbam_data_'+activeId);
-    clearInputs();
-    recalcAll();calcHSE();
+  if(st._proc){
+    const btn=document.querySelector('.proc-btn[data-mode="'+st._proc+'"]')||document.querySelector('.proc-btn.on');
+    if(btn){procMode=st._proc;document.querySelectorAll('.proc-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
   }
 }
 
-function exportData(){
-  try{
-    const activeId=getActiveFirmId();
-    const firms=getFirms();
-    const firm=firms.find(f=>f.id===activeId);
-    const data={};
-    SAVE_KEYS.filter(k=>k!=='api-key-input').forEach(k=>{const e=document.getElementById(k);if(e)data[k]=e.value;});
-    data._proc=procMode;data._exported=new Date().toISOString();data._firmName=firm?.name||'Firma';
-    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-    a.download='cbam_'+(firm?.name||'firma').replace(/\s+/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.json';a.click();
-  }catch(ex){alert('Dışa aktarma hatası: '+ex.message);}
-}
-
-function importData(){
-  const inp=document.createElement('input');inp.type='file';inp.accept='.json';
-  inp.onchange=e=>{
-    const reader=new FileReader();
-    reader.onload=ev=>{
-      try{
-        const data=JSON.parse(ev.target.result);
-        SAVE_KEYS.filter(k=>k!=='api-key-input').forEach(k=>{const el=document.getElementById(k);if(el&&data[k]!==undefined)el.value=data[k];});
-        if(data._proc){const btn=document.querySelector('.proc-btn[onclick*="'+data._proc+'"]');if(btn)setProc(data._proc,btn);}
-        recalcAll();calcHSE();saveData();
-        alert('Veri başarıyla yüklendi.');
-      }catch(ex){alert('Dosya okunamadı: '+ex.message);}
-    };reader.readAsText(e.target.files[0]);
-  };inp.click();
-}
-
-
-// ── CLEAN SAVE / LOAD ──
-function saveData(){
-  try{
-    if(window._isLoading) return;
-    const fid=getActiveFirmId();
-    if(!fid) return;
-    const st={_proc:procMode,_ts:Date.now()};
-    // Explicitly save all known field IDs (display:none fields not found by querySelectorAll)
-    const ALL_IDS=['pp-prod','pp-int','pp-ets','pp-try','pp-price','pp-exp',
-      'pi-meter','pi-verif','pi-sys','pi-hr',
-      'hf-ng1','hf-ng2','hf-ng3','hf-ng4','hf-dsl',
-      'hf-elec','hf-gef','hf-ren','hf-prod',
-      'firm-select'];
-    ALL_IDS.forEach(id=>{const el=document.getElementById(id);if(el)st[id]=el.value;});
-    localStorage.setItem('cbam3_'+fid,JSON.stringify(st));
-    const el=document.getElementById('last-upd');
-    const sel=document.getElementById('firm-select');
-    const nm=sel&&sel.options[sel.selectedIndex]?sel.options[sel.selectedIndex].text:'';
-    if(el){el.textContent='✓ '+(nm?nm+' · ':'')+new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});el.style.color='#059669';}
-    updateDebugBar();
-  }catch(ex){console.error('saveData error:',ex);}
-}
-
-function loadData(){
-  try{
-    const fid=getActiveFirmId();
-    if(!fid){console.log('loadData: no firm id');return;}
-    const raw=localStorage.getItem('cbam3_'+fid);
-    if(!raw){console.log('loadData: no data for',fid);return;}
-    const st=JSON.parse(raw);
-    let n=0;
-    Object.entries(st).forEach(([id,val])=>{
-      if(id.startsWith('_')) return;
-      const el=document.getElementById(id);
-      if(el){el.value=String(val);n++;}
-    });
-    if(st._proc){
-      const btn=document.querySelector('.proc-btn[onclick*="'+st._proc+'"]');
-      if(btn){procMode=st._proc;document.querySelectorAll('.proc-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
-    }
-    console.log('loadData: restored '+n+' fields for firm '+fid);
-  }catch(ex){console.error('loadData error:',ex);}
+function updateSaveStatus(){
+  const sel=document.getElementById('firm-select');
+  const nm=sel&&sel.selectedIndex>=0?sel.options[sel.selectedIndex].text:'';
+  const el=document.getElementById('last-upd');
+  if(el){el.textContent='✓ '+(nm?nm+' · ':'')+new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});el.style.color='#059669';}
 }
 
 function updateDebugBar(){
   try{
     localStorage.setItem('_t','1');const ok=localStorage.getItem('_t')==='1';localStorage.removeItem('_t');
-    const fid=getActiveFirmId();
-    const raw=fid?localStorage.getItem('cbam3_'+fid):null;
+    const aid=getActiveId();
+    const raw=aid?localStorage.getItem(_DATA_PREFIX+aid):null;
     const e1=document.getElementById('db-ls');const e2=document.getElementById('db-firm');const e3=document.getElementById('db-saved');
     if(e1){e1.textContent='localStorage: '+(ok?'✓ Çalışıyor':'✗ Çalışmıyor');e1.style.color=ok?'#059669':'#dc2626';}
-    if(e2){e2.textContent='Firma ID: '+(fid||'YOK');e2.style.color=fid?'#059669':'#dc2626';}
-    if(e3){const cnt=raw?Object.keys(JSON.parse(raw)).length:0;e3.textContent='Kayıtlı: '+(raw?'✓ Var ('+cnt+' alan)':'✗ Yok');e3.style.color=raw?'#059669':'#dc2626';}
+    if(e2){e2.textContent='Firma: '+(getFirms().find(f=>f.id===aid)?.name||aid||'YOK');e2.style.color=aid?'#059669':'#dc2626';}
+    if(e3){const cnt=raw?Object.keys(JSON.parse(raw)).filter(k=>!k.startsWith('_')).length:0;e3.textContent='Kayıtlı: '+(raw?'✓ '+cnt+' alan':'✗ Yok');e3.style.color=raw?'#059669':'#dc2626';}
   }catch(e){}
 }
 
-function debugSave(){saveData();alert('Kaydedildi.');}
+function debugSave(){doSave();alert('Manuel kaydedildi.');}
 
 function debugLoad(){
-  const fid=getActiveFirmId();
-  if(!fid){alert('Firma ID yok!');return;}
-  const raw=localStorage.getItem('cbam3_'+fid);
-  if(!raw){alert('Kayıtlı veri yok!\nFirma: '+fid);return;}
+  const aid=getActiveId();
+  const raw=aid?localStorage.getItem(_DATA_PREFIX+aid):null;
+  if(!raw){alert('Kayıtlı veri yok! Firma: '+(aid||'YOK'));return;}
   const st=JSON.parse(raw);
-  const preview=Object.entries(st).filter(([k,v])=>!k.startsWith('_')&&v!=='0'&&v!=='').slice(0,8).map(([k,v])=>k+': '+v).join('\n');
-  alert('Sıfırdan farklı değerler:\n'+(preview||'HEPSİ SIFIR!')+`\n\nToplam: ${Object.keys(st).length} alan\nSon kayıt: `+new Date(st._ts).toLocaleString('tr-TR'));
+  const nonzero=Object.entries(st).filter(([k,v])=>!k.startsWith('_')&&v&&v!=='0'&&v!=='');
+  alert('Sıfırdan farklı değerler ('+nonzero.length+'):\n'+nonzero.slice(0,8).map(([k,v])=>k+': '+v).join('\n')+'\n\nSon kayıt: '+new Date(st._ts).toLocaleString('tr-TR'));
 }
+
+function addFirm(){
+  const name=prompt('Yeni firma adı:');if(!name||!name.trim()) return;
+  doSave();
+  const firms=getFirms();const id='f'+Date.now();
+  firms.push({id,name:name.trim()});saveFirms(firms);setActiveId(id);
+  renderFirmSelect();clearInputs();recalcAll();calcHSE();
+}
+
+function switchFirm(id){
+  doSave();setActiveId(id);
+  clearInputs();doLoad();recalcAll();calcHSE();
+}
+
+function deleteFirm(){
+  const firms=getFirms();if(firms.length<=1){alert('En az bir firma olmalı.');return;}
+  const aid=getActiveId();const firm=firms.find(f=>f.id===aid);
+  if(!confirm('"'+firm?.name+'" silinecek. Emin misiniz?')) return;
+  const newFirms=firms.filter(f=>f.id!==aid);saveFirms(newFirms);
+  localStorage.removeItem(_DATA_PREFIX+aid);setActiveId(newFirms[0].id);
+  renderFirmSelect();clearInputs();doLoad();recalcAll();calcHSE();
+}
+
+function renameFirm(){
+  const firms=getFirms();const aid=getActiveId();const firm=firms.find(f=>f.id===aid);
+  const name=prompt('Yeni ad:',firm?.name||'');if(!name||!name.trim()) return;
+  firm.name=name.trim();saveFirms(firms);renderFirmSelect();
+}
+
+function clearInputs(){
+  _FIELDS.forEach(id=>{const e=document.getElementById(id);if(!e) return;
+    const defaults={'pp-prod':'10000','pp-int':'1.1','pp-ets':'75','pp-try':'38','pp-price':'2200','pp-exp':'60','pi-meter':'80','pi-verif':'35','pi-sys':'40','pi-hr':'25','hf-gef':'0.458'};
+    e.value=defaults[id]||'0';
+  });
+  const btn=document.querySelector('.proc-btn');if(btn) setProc('ex',btn);
+}
+
+// Wrapper functions for backward compatibility
+function saveData(){doSave();}
+function loadData(){doLoad();}
 
 window.addEventListener('DOMContentLoaded',()=>{
   try{
+    // 1. Build proc UI first
     setProc('ex', document.querySelector('.proc-btn.on'));
+    // 2. Init firm system
     initFirms();
-    
-    // Load data FIRST - populate all inputs
-    loadData();
-    
-    // Then calculate WITHOUT saving (flag prevents overwrite)
-    window._isLoading = true;
+    // 3. Load saved data into fields
+    doLoad();
+    // 4. Calculate from loaded data (no save during this)
+    window._loading=true;
     recalcAll();
     calcHSE();
-    window._isLoading = false;
-    
+    window._loading=false;
+    // 5. Update UI
     updateDebugBar();
-    
-    // Save on every input change directly (only after load is complete)
-    document.querySelectorAll('input[type=number], input[type=password]').forEach(inp=>{
-      inp.addEventListener('change', saveData);
-      inp.addEventListener('input', saveData);
+    // 6. Save on any field change
+    _FIELDS.forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.addEventListener('change', doSave);
     });
-    // Save when page closes
-    window.addEventListener('beforeunload', saveData);
-  }catch(e){console.error('Init error:',e);}
+    window.addEventListener('beforeunload', doSave);
+  }catch(e){console.error('Init:',e);}
 });
 
 </script>
