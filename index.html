@@ -617,138 +617,138 @@ async function getHSEAI(){
 }
 
 // ── STORAGE ──
-const _FIRMS_KEY='cbam_firms';
-const _ACTIVE_KEY='cbam_active';
-const _DATA_PREFIX='cbam_data_';
-const _FIELDS=['pp-prod','pp-int','pp-ets','pp-try','pp-price','pp-exp',
+const STORE_KEY = 'cbam_store_v1';
+const _FIELDS = ['pp-prod','pp-int','pp-ets','pp-try','pp-price','pp-exp',
   'pi-meter','pi-verif','pi-sys','pi-hr',
   'hf-ng1','hf-ng2','hf-ng3','hf-ng4','hf-dsl',
   'hf-elec','hf-gef','hf-ren','hf-prod'];
 
-function getFirms(){try{return JSON.parse(localStorage.getItem(_FIRMS_KEY)||'[]');}catch(e){return[];}}
-function saveFirms(f){localStorage.setItem(_FIRMS_KEY,JSON.stringify(f));}
-function getActiveId(){return localStorage.getItem(_ACTIVE_KEY)||'';}
-function setActiveId(id){localStorage.setItem(_ACTIVE_KEY,id);}
+function getStore(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY)||'null') || {firms:[{id:'f1',name:'Firma 1'}],active:'f1',data:{}}; }
+  catch(e){ return {firms:[{id:'f1',name:'Firma 1'}],active:'f1',data:{}}; }
+}
+function setStore(s){ localStorage.setItem(STORE_KEY, JSON.stringify(s)); }
 
 function initFirms(){
-  let firms=getFirms();
-  if(!firms.length){
-    const id='f'+Date.now();
-    firms=[{id,name:'Firma 1'}];
-    saveFirms(firms);
-    setActiveId(id);
-  }
-  if(!getActiveId()) setActiveId(firms[0].id);
+  const s=getStore();
+  if(!s.firms.length){ s.firms=[{id:'f1',name:'Firma 1'}]; s.active='f1'; setStore(s); }
+  if(!s.active) s.active=s.firms[0].id;
   renderFirmSelect();
 }
 
 function renderFirmSelect(){
-  const firms=getFirms();
-  const aid=getActiveId();
+  const s=getStore();
   const sel=document.getElementById('firm-select');
   if(!sel) return;
-  sel.innerHTML=firms.map(f=>`<option value="${f.id}"${f.id===aid?' selected':''}>${f.name}</option>`).join('');
+  sel.innerHTML=s.firms.map(f=>`<option value="${f.id}"${f.id===s.active?' selected':''}>${f.name}</option>`).join('');
 }
 
+function getActiveId(){ return getStore().active; }
+
 function doSave(){
-  if(window._loading) return;
-  const aid=getActiveId();
-  if(!aid) return;
-  const st={_proc:procMode,_ts:Date.now()};
-  _FIELDS.forEach(id=>{const el=document.getElementById(id);if(el) st[id]=el.value;});
-  localStorage.setItem(_DATA_PREFIX+aid, JSON.stringify(st));
-  updateSaveStatus();
-  updateDebugBar();
+  try{
+    if(window._loading) return;
+    const s=getStore();
+    const st={_ts:Date.now(),_proc:procMode};
+    _FIELDS.forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) st[id]=el.value;
+    });
+    s.data[s.active]=st;
+    setStore(s);
+    const sel=document.getElementById('firm-select');
+    const nm=sel&&sel.selectedIndex>=0?sel.options[sel.selectedIndex].text:'';
+    const el=document.getElementById('last-upd');
+    if(el){el.textContent='✓ '+(nm?nm+' · ':'')+new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});el.style.color='#059669';}
+    updateDebugBar();
+  }catch(ex){console.error('doSave:',ex);}
 }
 
 function doLoad(){
-  const aid=getActiveId();
-  if(!aid) return;
-  const raw=localStorage.getItem(_DATA_PREFIX+aid);
-  if(!raw) return;
-  const st=JSON.parse(raw);
-  _FIELDS.forEach(id=>{
-    const el=document.getElementById(id);
-    if(el && st[id]!==undefined) el.value=st[id];
-  });
-  if(st._proc){
-    const btn=document.querySelector('.proc-btn[data-mode="'+st._proc+'"]')||document.querySelector('.proc-btn.on');
-    if(btn){procMode=st._proc;document.querySelectorAll('.proc-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
-  }
-}
-
-function updateSaveStatus(){
-  const sel=document.getElementById('firm-select');
-  const nm=sel&&sel.selectedIndex>=0?sel.options[sel.selectedIndex].text:'';
-  const el=document.getElementById('last-upd');
-  if(el){el.textContent='✓ '+(nm?nm+' · ':'')+new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});el.style.color='#059669';}
+  try{
+    const s=getStore();
+    const st=s.data[s.active];
+    if(!st){ console.log('doLoad: no data for',s.active); return; }
+    _FIELDS.forEach(id=>{
+      const el=document.getElementById(id);
+      if(el&&st[id]!==undefined) el.value=st[id];
+    });
+    if(st._proc){
+      const btn=document.querySelector('.proc-btn[onclick*="'+st._proc+'"]');
+      if(btn){procMode=st._proc;document.querySelectorAll('.proc-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+    }
+    console.log('doLoad: restored for',s.active,'ts=',new Date(st._ts||0).toLocaleTimeString());
+  }catch(ex){console.error('doLoad:',ex);}
 }
 
 function updateDebugBar(){
   try{
     localStorage.setItem('_t','1');const ok=localStorage.getItem('_t')==='1';localStorage.removeItem('_t');
-    const aid=getActiveId();
-    const raw=aid?localStorage.getItem(_DATA_PREFIX+aid):null;
+    const s=getStore();
+    const st=s.data[s.active];
+    const firmName=s.firms.find(f=>f.id===s.active)?.name||s.active;
     const e1=document.getElementById('db-ls');const e2=document.getElementById('db-firm');const e3=document.getElementById('db-saved');
     if(e1){e1.textContent='localStorage: '+(ok?'✓ Çalışıyor':'✗ Çalışmıyor');e1.style.color=ok?'#059669':'#dc2626';}
-    if(e2){e2.textContent='Firma: '+(getFirms().find(f=>f.id===aid)?.name||aid||'YOK');e2.style.color=aid?'#059669':'#dc2626';}
+    if(e2){e2.textContent='Firma: '+firmName;e2.style.color='#059669';}
     if(e3){
-      const cnt=raw?Object.keys(JSON.parse(raw)).filter(k=>!k.startsWith('_')).length:0;
-      const hfVal=raw?JSON.parse(raw)['hf-ng1']:'—';
-      e3.textContent='Kayıtlı: '+(raw?'✓ '+cnt+' alan | hf-ng1='+hfVal:'✗ Yok');
-      e3.style.color=raw?'#059669':'#dc2626';
+      const cnt=st?Object.keys(st).filter(k=>!k.startsWith('_')).length:0;
+      const hf1=st?st['hf-ng1']||'0':'—';
+      e3.textContent='Kayıtlı: '+(st?'✓ '+cnt+' alan | hf-ng1='+hf1:'✗ Yok');
+      e3.style.color=st?'#059669':'#dc2626';
     }
   }catch(e){}
 }
 
-function debugSave(){doSave();alert('Manuel kaydedildi.');}
+function debugSave(){ doSave(); alert('Kaydedildi.'); }
 
 function debugLoad(){
-  const aid=getActiveId();
-  const raw=aid?localStorage.getItem(_DATA_PREFIX+aid):null;
-  if(!raw){alert('Kayıtlı veri yok! Firma: '+(aid||'YOK'));return;}
-  const st=JSON.parse(raw);
+  const s=getStore();
+  const st=s.data[s.active];
+  if(!st){alert('Bu firma için veri yok!\nFirma: '+s.active);return;}
   const nonzero=Object.entries(st).filter(([k,v])=>!k.startsWith('_')&&v&&v!=='0'&&v!=='');
-  alert('Sıfırdan farklı değerler ('+nonzero.length+'):\n'+nonzero.slice(0,8).map(([k,v])=>k+': '+v).join('\n')+'\n\nSon kayıt: '+new Date(st._ts).toLocaleString('tr-TR'));
+  alert('Kayıtlı değerler ('+nonzero.length+' alan sıfırdan farklı):\n'+nonzero.map(([k,v])=>k+': '+v).join('\n')+'\n\nSon kayıt: '+new Date(st._ts||0).toLocaleString('tr-TR'));
 }
 
 function addFirm(){
   const name=prompt('Yeni firma adı:');if(!name||!name.trim()) return;
   doSave();
-  const firms=getFirms();const id='f'+Date.now();
-  firms.push({id,name:name.trim()});saveFirms(firms);setActiveId(id);
-  renderFirmSelect();clearInputs();recalcAll();calcHSE();
+  const s=getStore();
+  const id='f'+Date.now();
+  s.firms.push({id,name:name.trim()});s.active=id;
+  setStore(s);renderFirmSelect();clearInputs();recalcAll();calcHSE();
 }
 
 function switchFirm(id){
-  doSave();setActiveId(id);
+  doSave();
+  const s=getStore();s.active=id;setStore(s);
   clearInputs();doLoad();recalcAll();calcHSE();
 }
 
 function deleteFirm(){
-  const firms=getFirms();if(firms.length<=1){alert('En az bir firma olmalı.');return;}
-  const aid=getActiveId();const firm=firms.find(f=>f.id===aid);
+  const s=getStore();
+  if(s.firms.length<=1){alert('En az bir firma olmalı.');return;}
+  const firm=s.firms.find(f=>f.id===s.active);
   if(!confirm('"'+firm?.name+'" silinecek. Emin misiniz?')) return;
-  const newFirms=firms.filter(f=>f.id!==aid);saveFirms(newFirms);
-  localStorage.removeItem(_DATA_PREFIX+aid);setActiveId(newFirms[0].id);
-  renderFirmSelect();clearInputs();doLoad();recalcAll();calcHSE();
+  delete s.data[s.active];
+  s.firms=s.firms.filter(f=>f.id!==s.active);
+  s.active=s.firms[0].id;
+  setStore(s);renderFirmSelect();clearInputs();doLoad();recalcAll();calcHSE();
 }
 
 function renameFirm(){
-  const firms=getFirms();const aid=getActiveId();const firm=firms.find(f=>f.id===aid);
-  const name=prompt('Yeni ad:',firm?.name||'');if(!name||!name.trim()) return;
-  firm.name=name.trim();saveFirms(firms);renderFirmSelect();
+  const s=getStore();
+  const firm=s.firms.find(f=>f.id===s.active);
+  const name=prompt('Yeni ad:',firm?.name||'');
+  if(!name||!name.trim()) return;
+  firm.name=name.trim();setStore(s);renderFirmSelect();
 }
 
 function clearInputs(){
-  _FIELDS.forEach(id=>{const e=document.getElementById(id);if(!e) return;
-    const defaults={'pp-prod':'10000','pp-int':'1.1','pp-ets':'75','pp-try':'38','pp-price':'2200','pp-exp':'60','pi-meter':'80','pi-verif':'35','pi-sys':'40','pi-hr':'25','hf-gef':'0.458'};
-    e.value=defaults[id]||'0';
-  });
-  const btn=document.querySelector('.proc-btn');if(btn) setProc('ex',btn);
+  const defs={'pp-prod':'10000','pp-int':'1.1','pp-ets':'75','pp-try':'38','pp-price':'2200','pp-exp':'60','pi-meter':'80','pi-verif':'35','pi-sys':'40','pi-hr':'25','hf-gef':'0.458'};
+  _FIELDS.forEach(id=>{const e=document.getElementById(id);if(e)e.value=defs[id]||'0';});
+  const btn=document.querySelector('.proc-btn');if(btn)setProc('ex',btn);
 }
 
-// Wrapper functions for backward compatibility
 function saveData(){doSave();}
 function loadData(){doLoad();}
 
