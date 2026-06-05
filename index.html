@@ -754,34 +754,19 @@ function loadData(){doLoad();}
 
 window.addEventListener('DOMContentLoaded',()=>{
   try{
-    // 1. Build proc UI first
     setProc('ex', document.querySelector('.proc-btn.on'));
-    // 2. Init firm system
     initFirms();
-    // 3. Load saved data into fields
     doLoad();
-    // 4. Verify load worked
-    const _testEl=document.getElementById('hf-ng1');
-    console.log('After doLoad, hf-ng1 =', _testEl?_testEl.value:'NOT FOUND');
-    // 5. Calculate from loaded data (no save during this)
     window._loading=true;
-    recalcAll();
-    calcHSE();
-    window._loading=false;
-    console.log('After recalc, hf-ng1 =', _testEl?_testEl.value:'NOT FOUND');
-    // 5. Update UI
+    try{ recalcAll(); calcHSE(); } finally { window._loading=false; }
     updateDebugBar();
-    // 6. Save on any field change (input + change + interval + unload)
     _FIELDS.forEach(id=>{
       const el=document.getElementById(id);
-      if(el){
-        el.addEventListener('input', doSave);
-        el.addEventListener('change', doSave);
-      }
+      if(el){ el.addEventListener('input',doSave); el.addEventListener('change',doSave); }
     });
-    setInterval(doSave, 3000); // auto-save every 3 seconds
-    window.addEventListener('beforeunload', doSave);
-    window.addEventListener('visibilitychange', ()=>{ if(document.visibilityState==='hidden') doSave(); });
+    setInterval(doSave,2000);
+    window.addEventListener('beforeunload',doSave);
+    window.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') doSave(); });
   }catch(e){console.error('Init:',e);}
 });
 
