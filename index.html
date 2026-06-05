@@ -692,7 +692,12 @@ function updateDebugBar(){
     const e1=document.getElementById('db-ls');const e2=document.getElementById('db-firm');const e3=document.getElementById('db-saved');
     if(e1){e1.textContent='localStorage: '+(ok?'✓ Çalışıyor':'✗ Çalışmıyor');e1.style.color=ok?'#059669':'#dc2626';}
     if(e2){e2.textContent='Firma: '+(getFirms().find(f=>f.id===aid)?.name||aid||'YOK');e2.style.color=aid?'#059669':'#dc2626';}
-    if(e3){const cnt=raw?Object.keys(JSON.parse(raw)).filter(k=>!k.startsWith('_')).length:0;e3.textContent='Kayıtlı: '+(raw?'✓ '+cnt+' alan':'✗ Yok');e3.style.color=raw?'#059669':'#dc2626';}
+    if(e3){
+      const cnt=raw?Object.keys(JSON.parse(raw)).filter(k=>!k.startsWith('_')).length:0;
+      const hfVal=raw?JSON.parse(raw)['hf-ng1']:'—';
+      e3.textContent='Kayıtlı: '+(raw?'✓ '+cnt+' alan | hf-ng1='+hfVal:'✗ Yok');
+      e3.style.color=raw?'#059669':'#dc2626';
+    }
   }catch(e){}
 }
 
@@ -755,11 +760,15 @@ window.addEventListener('DOMContentLoaded',()=>{
     initFirms();
     // 3. Load saved data into fields
     doLoad();
-    // 4. Calculate from loaded data (no save during this)
+    // 4. Verify load worked
+    const _testEl=document.getElementById('hf-ng1');
+    console.log('After doLoad, hf-ng1 =', _testEl?_testEl.value:'NOT FOUND');
+    // 5. Calculate from loaded data (no save during this)
     window._loading=true;
     recalcAll();
     calcHSE();
     window._loading=false;
+    console.log('After recalc, hf-ng1 =', _testEl?_testEl.value:'NOT FOUND');
     // 5. Update UI
     updateDebugBar();
     // 6. Save on any field change (input + change + interval + unload)
