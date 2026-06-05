@@ -754,10 +754,10 @@ function loadData(){doLoad();}
 
 window.addEventListener('DOMContentLoaded',()=>{
   try{
+    window._loading=true;  // MUST be first - prevents setProc/calcHSE from overwriting saved data
     setProc('ex', document.querySelector('.proc-btn.on'));
     initFirms();
     doLoad();
-    window._loading=true;
     try{ recalcAll(); calcHSE(); } finally { window._loading=false; }
     updateDebugBar();
     _FIELDS.forEach(id=>{
